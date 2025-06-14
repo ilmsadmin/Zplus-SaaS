@@ -1,180 +1,124 @@
-Kiến trúc nền tảng SaaS đa tenant gồm 3 tầng phân quyền (System → Tenant → Customer), dễ mở rộng ra nhiều module trong tương lai như CRM, POS, LMS...
+# Zplus SaaS - Multi-Tenant Platform
 
+Nền tảng SaaS đa tenant hiện đại với kiến trúc 3 tầng phân quyền rõ ràng (System → Tenant → Customer), hỗ trợ tích hợp nhiều module như CRM, LMS, POS, HRM...
 
----
+## 🚀 Tổng quan dự án
 
-🏗️ Kiến trúc tổng quan
+Zplus SaaS là một nền tảng Software as a Service được xây dựng với công nghệ hiện đại, cho phép quản lý nhiều khách hàng (tenant) với dữ liệu hoàn toàn tách biệt. Hệ thống được thiết kế với khả năng mở rộng cao và hỗ trợ module-based architecture.
 
-+-------------------------+
-|        System          |  <-- Quản trị toàn cục (RBAC, gói dịch vụ, tenant, domain)
-+-------------------------+
-            |
-            v
-+-------------------------+
-|        Tenant          |  <-- Quản trị trong phạm vi tenant (RBAC, user, module, khách hàng)
-+-------------------------+
-            |
-            v
-+-------------------------+
-|       Customer         |  <-- Người dùng cuối, sử dụng dịch vụ (CRM, LMS, POS...)
-+-------------------------+
+### ✨ Tính năng chính
 
+- **🏗️ Kiến trúc 3 tầng**: System → Tenant → Customer với phân quyền rõ ràng
+- **🔧 Module linh hoạt**: CRM, LMS, POS, HRM có thể bật/tắt theo nhu cầu
+- **🔒 Bảo mật cao**: Multi-level RBAC và JWT authentication
+- **⚡ Hiệu suất tối ưu**: Redis caching và microservices architecture
+- **🌐 Multi-domain**: Hỗ trợ custom domain/subdomain cho từng tenant
 
----
+## 🛠️ Công nghệ sử dụng
 
-📦 Tầng 1: System Layer
+- **Frontend**: Next.js
+- **Backend**: Go Fiber + GORM
+- **Database**: PostgreSQL + MongoDB
+- **Cache**: Redis
+- **Architecture**: Microservices với GraphQL Gateway
 
-Dữ liệu chung toàn hệ thống (đặt trong schema public hoặc riêng schema system).
+## 📚 Tài liệu dự án
 
-Các chức năng:
+### Tài liệu thiết kế (Vietnamese)
 
-Quản trị người dùng hệ thống (admin panel).
+- [📋 Thiết kế tổng quan dự án](./docs/thiet-ke-tong-quan-du-an.md) - Mục tiêu, phạm vi, đối tượng sử dụng
+- [🏗️ Thiết kế kiến trúc dự án](./docs/thiet-ke-kien-truc-du-an.md) - Kiến trúc hệ thống, công nghệ, deployment
+- [🗄️ Thiết kế kiến trúc database](./docs/thiet-ke-kien-truc-database.md) - Multi-tenant database design
+- [🎨 Thiết kế UX/UI](./docs/thiet-ke-ux-ui.md) - Design system, components, accessibility
+- [📖 Architecture Documentation](./docs/architecture.md) - Technical architecture overview
 
-Quản lý Tenant:
+## 🎨 HTML Mockups
 
-Tên + Mô tả
+Các mockup HTML thể hiện kiến trúc 3 tầng của hệ thống:
 
-Subdomain / domain tùy chỉnh
+- [🏠 **Mockup Gallery**](./mock/index.html) - Trang tổng quan các mockup
+- [⚙️ **System Admin Dashboard**](./mock/system-admin-dashboard.html) - Quản lý global tenant, plans, modules
+- [🏢 **Tenant Admin Dashboard**](./mock/tenant-admin-dashboard.html) - Quản lý tổ chức, team, cấu hình
+- [📊 **CRM Dashboard**](./mock/customer-crm-dashboard.html) - Sales pipeline, quản lý khách hàng
+- [🎓 **LMS Student Portal**](./mock/customer-lms-portal.html) - Học tập, certificates, progress tracking
 
-Trạng thái (active, suspended)
+## 🏗️ Cấu trúc dự án
 
+```
+zplus-saas/
+│
+├── apps/
+│   ├── backend/
+│   │   ├── gateway/            # GraphQL/REST gateway + auth/tenant
+│   │   ├── auth/               # Authentication + RBAC
+│   │   ├── file/               # File management
+│   │   ├── payment/            # Transactions & subscriptions
+│   │   ├── crm/                # Customer management
+│   │   ├── hrm/                # HR management
+│   │   ├── pos/                # Point of sale
+│   │   └── shared/             # Shared libraries
+│   │
+│   ├── frontend/
+│   │   ├── web/
+│   │   │   └── system/         # System admin interface
+│   │   ├── admin/              # Tenant admin interface
+│   │   └── ui/                 # Shared UI components
+│
+├── pkg/                        # Reusable SDKs & libraries
+│
+├── infra/
+│   ├── db/                     # Database migrations
+│   ├── k8s/                    # Kubernetes manifests
+│   ├── docker/                 # Dockerfiles
+│   └── ci-cd/                  # CI/CD configurations
+│
+├── docs/                       # Project documentation
+└── mock/                       # HTML mockups
+```
 
-RBAC cho admin system (nếu có nhiều người vận hành).
+## 🎯 Kiến trúc 3 tầng
 
-Quản lý Plan/Subscription:
+```
+┌─────────────────────────────┐
+│        System Layer         │ ← Global management (tenants, plans, modules)
+└─────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────┐
+│        Tenant Layer         │ ← Organization management (users, RBAC, config)
+└─────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────┐
+│       Customer Layer        │ ← End-user interfaces (CRM, LMS, POS, HRM)
+└─────────────────────────────┘
+```
 
-Plan: tên, mô tả, giá, giới hạn (user, dung lượng...)
+## 🚦 Request Flow
 
-Subscription: tenant nào đang dùng plan nào, thời hạn
+1. **Subdomain routing**: `tenant.myapp.com` → `X-Tenant-ID: tenant`
+2. **Gateway processing**: Authentication + tenant validation
+3. **Module routing**: Route to appropriate microservice
+4. **Database isolation**: Access tenant-specific schema
 
+## 🔧 Development
 
-Quản lý các Modules có thể kích hoạt cho từng tenant:
+```bash
+# Backend (Go Fiber)
+cd apps/backend
+go mod tidy
+go run main.go
 
-CRM, POS, LMS, HRM, Checkin...
+# Frontend (Next.js)
+cd apps/frontend/web
+npm install
+npm run dev
+```
 
-Module có thể bao gồm tên, mô tả, cấu hình bật/tắt
+## 📄 License
 
-
-(Tùy chọn) Quản lý thanh toán (Stripe/Billing API...)
-
-
-Tables gợi ý:
-
-Table	Description
-
-system_users	Admin hệ thống
-tenants	Danh sách tenant (id, name, domain)
-plans	Các gói cước
-subscriptions	Gói đang dùng cho từng tenant
-modules	Các module được hỗ trợ
-tenant_modules	Các module được bật cho tenant
-
-
-
----
-
-🏢 Tầng 2: Tenant Layer
-
-Dữ liệu riêng trong từng schema PostgreSQL: tenant_acme, tenant_zin100...
-
-Chức năng:
-
-RBAC cho tenant: user, role, permission.
-
-Quản lý người dùng nội bộ của tenant (admin, nhân viên...).
-
-Quản lý khách hàng cuối (customers) tùy theo module đang dùng.
-
-Theo dõi usage, cấu hình tenant.
-
-Kích hoạt module nào sẽ hiển thị/ẩn tính năng tương ứng.
-
-Cấu hình tích hợp (zalo OA, email, sms...) tùy tenant.
-
-
-Tables cơ bản:
-
-Table	Description
-
-users	Người dùng nội bộ của tenant
-roles	Vai trò
-permissions	Quyền
-user_roles	Gán người dùng vào vai trò
-customers	Khách hàng cuối
-modules_config	Bật/tắt các tính năng trong tenant
-
-
-> Bạn có thể định nghĩa 1 BaseModule interface để các module mới thêm dễ dàng (CRM, POS,...).
-
-
-
-
----
-
-👤 Tầng 3: Customer Layer
-
-Người dùng cuối sử dụng dịch vụ, ví dụ:
-
-Học viên (LMS)
-
-Khách hàng CRM
-
-Khách mua hàng (POS)
-
-Nhân viên (HRM)
-
-
-> Tùy vào module được bật mà dữ liệu và flow của tầng này sẽ khác.
-
-
-
-Ví dụ với LMS: | Table          | Description                      | |----------------|----------------------------------| | students     | Học viên                         | | courses      | Khóa học                         | | enrollments  | Ghi danh                         | | lessons      | Nội dung                         | | quizzes      | Bài kiểm tra                     |
-
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-🔗 Module System - Gợi ý mở rộng
-
-Hệ thống cần hỗ trợ module-based feature toggle:
-
-Module registry: khai báo module
-
-Tenant-specific config: schema tenant_zin100.modules_config
-
-API Gateway GraphQL điều phối route theo module đang bật
-
-Middleware kiểm tra module permission theo X-Tenant-ID
-
-
-
----
-
-🧠 Kiến trúc kỹ thuật tóm tắt
-
-Layer	Scope	Database Schema	Auth	Tool/Libs
-
-System	Global	system / public	JWT + RBAC (admin)	Go + Fiber + GORM
-Tenant	Per-tenant (isolated)	tenant_xyz	JWT + RBAC (tenant)	Fiber + GORM + Redis
-Customer	End-user (module-specific)	Depends on module	Session/JWT (lightweight)	Fiber/module-specific logic
-
-
-
----
-
-🚦 Luồng request điển hình
-
-1. student-zin100.myapp.com/api/graphql
-
-
-2. Traefik xác định subdomain: zin100 → Header: X-Tenant-ID: zin100
-
-
-3. GraphQL Gateway:
-
-Gọi middleware check tenant + module + RBAC
-
-Route đến microservice Fiber tương ứng
-
-
-
-4. Microservice dùng GetTenantDB(c) để truy cập schema tương ứng.
+**Zplus SaaS** - Powering the future of multi-tenant applications
