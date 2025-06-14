@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zplus SaaS - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-blue: #2563eb;
+            --primary-blue-light: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --red-500: #ef4444;
+            --green-500: #10b981;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-800);
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            margin: 2rem;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo p {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--gray-700);
+            font-size: 0.875rem;
+        }
+        
+        .form-input {
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .form-input.error {
+            border-color: var(--red-500);
+        }
+        
+        .tenant-select {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .tenant-option {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .tenant-option:hover {
+            border-color: var(--primary-blue-light);
+        }
+        
+        .tenant-option.active {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+        }
+        
+        .login-btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 0.875rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+        
+        .login-btn:hover {
+            background: var(--primary-blue-light);
+        }
+        
+        .login-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .login-btn:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: var(--red-500);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            text-align: center;
+            border: 1px solid #fecaca;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: var(--green-500);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            text-align: center;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .demo-credentials {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .demo-credentials h4 {
+            margin-bottom: 0.5rem;
+            color: var(--gray-700);
+        }
+        
+        .demo-credentials p {
+            margin-bottom: 0.25rem;
+            color: var(--gray-600);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid white;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .login-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            
+            .tenant-select {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>Zplus SaaS</h1>
+            <p>Multi-tenant Business Platform</p>
+        </div>
+        
+        <form class="login-form" id="loginForm">
+            <div class="tenant-select">
+                <div class="tenant-option active" data-tenant="system">
+                    🏗️ System Admin
+                </div>
+                <div class="tenant-option" data-tenant="demo-corp">
+                    🏢 Tenant Admin
+                </div>
+                <div class="tenant-option" data-tenant="customer">
+                    👤 Customer
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-input" 
+                    placeholder="Enter your email"
+                    required
+                />
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="Enter your password"
+                    required
+                />
+            </div>
+            
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="successMessage" class="success-message" style="display: none;"></div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                Login
+            </button>
+        </form>
+        
+        <div class="demo-credentials">
+            <h4>Demo Credentials:</h4>
+            <p><strong>System Admin:</strong> admin@zplus.com / admin123</p>
+            <p><strong>Tenant Admin:</strong> admin@demo-corp.zplus.com / demo123</p>
+            <p><strong>Customer:</strong> john@demo-corp.zplus.com / user123</p>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let selectedTenant = 'system';
+        let isLoading = false;
+
+        // DOM elements
+        const tenantOptions = document.querySelectorAll('.tenant-option');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Event listeners
+        tenantOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                tenantOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                selectedTenant = option.dataset.tenant;
+                
+                // Update placeholder email based on tenant selection
+                updateEmailPlaceholder();
+                clearMessages();
+            });
+        });
+
+        loginForm.addEventListener('submit', handleLogin);
+
+        // Functions
+        function updateEmailPlaceholder() {
+            const placeholders = {
+                'system': 'admin@zplus.com',
+                'demo-corp': 'admin@demo-corp.zplus.com',
+                'customer': 'john@demo-corp.zplus.com'
+            };
+            
+            emailInput.placeholder = placeholders[selectedTenant] || 'Enter your email';
+        }
+
+        function clearMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            emailInput.classList.remove('error');
+            passwordInput.classList.remove('error');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            loginBtn.disabled = loading;
+            
+            if (loading) {
+                loginBtn.innerHTML = '<span class="loading"></span>Logging in...';
+            } else {
+                loginBtn.innerHTML = 'Login';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            if (isLoading) return;
+            
+            clearMessages();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            // Client-side validation
+            if (!email || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+            
+            // Map tenant selection to actual tenant slug
+            const tenantMap = {
+                'system': 'system',
+                'demo-corp': 'demo-corp',
+                'customer': 'demo-corp' // Customer users belong to demo-corp tenant
+            };
+            
+            const tenantSlug = tenantMap[selectedTenant];
+            
+            setLoading(true);
+            
+            try {
+                const response = await fetch('http://localhost:8081/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        tenant_slug: tenantSlug
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store authentication data
+                    localStorage.setItem('zplus_token', data.token);
+                    localStorage.setItem('zplus_refresh_token', data.refresh_token);
+                    localStorage.setItem('zplus_user', JSON.stringify(data.user));
+                    
+                    showSuccess('Login successful! Redirecting...');
+                    
+                    // Redirect based on user role
+                    setTimeout(() => {
+                        if (data.user.is_admin && data.user.tenant_id === 'system') {
+                            window.location.href = 'system-admin-dashboard.html';
+                        } else if (data.user.roles.includes('tenant_admin')) {
+                            window.location.href = 'tenant-admin-dashboard.html';
+                        } else {
+                            // Customer user - redirect to appropriate module
+                            window.location.href = 'customer-crm-dashboard.html';
+                        }
+                    }, 1500);
+                } else {
+                    showError(data.message || data.error || 'Login failed');
+                    
+                    // Highlight fields with errors
+                    if (data.code === 'INVALID_CREDENTIALS') {
+                        emailInput.classList.add('error');
+                        passwordInput.classList.add('error');
+                    }
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Network error. Please check if the auth service is running on port 8081.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Initialize
+        updateEmailPlaceholder();
+        
+        // Auto-fill demo credentials based on selection
+        tenantOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const demoCredentials = {
+                    'system': { email: 'admin@zplus.com', password: 'admin123' },
+                    'demo-corp': { email: 'admin@demo-corp.zplus.com', password: 'demo123' },
+                    'customer': { email: 'john@demo-corp.zplus.com', password: 'user123' }
+                };
+                
+                const creds = demoCredentials[option.dataset.tenant];
+                if (creds) {
+                    emailInput.value = creds.email;
+                    passwordInput.value = creds.password;
+                }
+            });
+        });
+        
+        // Set initial demo credentials
+        emailInput.value = 'admin@zplus.com';
+        passwordInput.value = 'admin123';
+    </script>
+</body>
+</html>

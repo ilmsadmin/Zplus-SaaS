@@ -100,10 +100,74 @@
             padding: 0.5rem;
             border-radius: 0.5rem;
             transition: background 0.2s;
+            position: relative;
         }
         
         .user-menu:hover {
             background: var(--gray-100);
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .user-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .dropdown-user-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        .dropdown-user-email {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+        
+        .dropdown-menu {
+            padding: 0.5rem 0;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--gray-700);
+            text-decoration: none;
+            transition: background 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--gray-50);
+        }
+        
+        .dropdown-item.danger {
+            color: var(--red-500);
+        }
+        
+        .dropdown-item.danger:hover {
+            background: #fef2f2;
         }
         
         .avatar {
@@ -459,10 +523,31 @@
             <a href="#" class="nav-item">Opportunities</a>
             <a href="#" class="nav-item">Reports</a>
         </nav>
-        <div class="user-menu">
+        <div class="user-menu" id="userMenu">
             <div class="avatar">JS</div>
-            <span>Jane Smith</span>
+            <span id="userName">Jane Smith</span>
             <span>▼</span>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dropdown-header">
+                    <div class="dropdown-user-name" id="dropdownUserName">Jane Smith</div>
+                    <div class="dropdown-user-email" id="dropdownUserEmail">john@demo-corp.zplus.com</div>
+                </div>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item">
+                        <span>👤</span>
+                        <span>Profile</span>
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <span>⚙️</span>
+                        <span>Settings</span>
+                    </a>
+                    <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid var(--gray-200);">
+                    <button class="dropdown-item danger" id="logoutBtn">
+                        <span>🚪</span>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -683,5 +768,165 @@
             </div>
         </div>
     </main>
+
+    <script>
+        // Authentication and user management
+        let currentUser = null;
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAuth();
+            initializeUserMenu();
+        });
+        
+        function initializeAuth() {
+            // Check if user is logged in
+            const token = localStorage.getItem('zplus_token');
+            const userStr = localStorage.getItem('zplus_user');
+            
+            if (!token || !userStr) {
+                // Redirect to login if not authenticated
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                currentUser = JSON.parse(userStr);
+                
+                // Check if user has appropriate access (customer or admin)
+                if (currentUser.is_admin && currentUser.tenant_id === 'system') {
+                    // Allow system admin to access customer dashboards
+                } else if (!currentUser.roles || currentUser.roles.length === 0) {
+                    alert('Access denied. You do not have permission to access this dashboard.');
+                    logout();
+                    return;
+                }
+                
+                // Update UI with user information
+                updateUserDisplay();
+                
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                logout();
+            }
+        }
+        
+        function updateUserDisplay() {
+            if (!currentUser) return;
+            
+            // Update user name and email in header
+            const userName = document.getElementById('userName');
+            const dropdownUserName = document.getElementById('dropdownUserName');
+            const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+            
+            const fullName = `${currentUser.first_name} ${currentUser.last_name}`;
+            
+            if (userName) userName.textContent = fullName;
+            if (dropdownUserName) dropdownUserName.textContent = fullName;
+            if (dropdownUserEmail) dropdownUserEmail.textContent = currentUser.email;
+            
+            // Update avatar initials
+            const avatar = document.querySelector('.avatar');
+            if (avatar) {
+                const initials = `${currentUser.first_name[0]}${currentUser.last_name[0]}`;
+                avatar.textContent = initials;
+            }
+        }
+        
+        function initializeUserMenu() {
+            const userMenu = document.getElementById('userMenu');
+            const userDropdown = document.getElementById('userDropdown');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            // Toggle dropdown
+            userMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('show');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                userDropdown.classList.remove('show');
+            });
+            
+            // Prevent dropdown from closing when clicking inside
+            userDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            // Logout functionality
+            logoutBtn.addEventListener('click', logout);
+        }
+        
+        async function logout() {
+            try {
+                // Call logout endpoint
+                const token = localStorage.getItem('zplus_token');
+                if (token) {
+                    await fetch('http://localhost:8081/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                // Clear local storage and redirect
+                localStorage.removeItem('zplus_token');
+                localStorage.removeItem('zplus_refresh_token');
+                localStorage.removeItem('zplus_user');
+                
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Token refresh functionality
+        async function refreshToken() {
+            const refreshToken = localStorage.getItem('zplus_refresh_token');
+            if (!refreshToken) {
+                logout();
+                return false;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8081/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        refresh_token: refreshToken
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('zplus_token', data.token);
+                    localStorage.setItem('zplus_user', JSON.stringify(data.user));
+                    return true;
+                } else {
+                    logout();
+                    return false;
+                }
+            } catch (error) {
+                console.error('Token refresh error:', error);
+                logout();
+                return false;
+            }
+        }
+        
+        // Auto-refresh token before expiry (optional)
+        setInterval(() => {
+            const token = localStorage.getItem('zplus_token');
+            if (token) {
+                // In a real app, you'd decode the JWT to check expiry time
+                // For now, we'll refresh every 30 minutes
+                refreshToken();
+            }
+        }, 30 * 60 * 1000); // 30 minutes
+    </script>
 </body>
 </html>
