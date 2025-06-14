@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zplus SaaS - Mockup Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-blue: #2563eb;
+            --primary-blue-light: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --green: #10b981;
+            --orange: #f59e0b;
+            --purple: #8b5cf6;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+        }
+        
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+        }
+        
+        .description {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+            margin-bottom: 3rem;
+        }
+        
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .mockup-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .mockup-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        
+        .mockup-preview {
+            height: 200px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: white;
+            position: relative;
+        }
+        
+        .mockup-preview.system {
+            background: linear-gradient(135deg, var(--green), #059669);
+        }
+        
+        .mockup-preview.tenant {
+            background: linear-gradient(135deg, var(--orange), #d97706);
+        }
+        
+        .mockup-preview.crm {
+            background: linear-gradient(135deg, var(--purple), #7c3aed);
+        }
+        
+        .mockup-preview.lms {
+            background: linear-gradient(135deg, #6366f1, var(--purple));
+        }
+        
+        .mockup-content {
+            padding: 1.5rem;
+        }
+        
+        .mockup-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-800);
+        }
+        
+        .mockup-description {
+            color: var(--gray-600);
+            margin-bottom: 1rem;
+        }
+        
+        .mockup-features {
+            list-style: none;
+            margin-bottom: 1rem;
+        }
+        
+        .mockup-features li {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .mockup-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--green);
+            font-weight: 600;
+        }
+        
+        .mockup-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .mockup-link:hover {
+            color: var(--primary-blue-light);
+        }
+        
+        .docs-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .docs-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--gray-800);
+        }
+        
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .doc-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: var(--gray-700);
+            transition: all 0.2s;
+        }
+        
+        .doc-link:hover {
+            background: var(--blue-50);
+            color: var(--primary-blue);
+        }
+        
+        .doc-icon {
+            font-size: 1.5rem;
+        }
+        
+        .doc-info {
+            flex: 1;
+        }
+        
+        .doc-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .doc-description {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .mockup-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .docs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Zplus SaaS</h1>
+            <p class="subtitle">Multi-tenant SaaS Platform Mockups & Documentation</p>
+        </div>
+        
+        <div class="description">
+            <h2 style="margin-bottom: 1rem; color: var(--gray-800);">About Zplus SaaS</h2>
+            <p style="margin-bottom: 1rem;">
+                Zplus SaaS là một nền tảng SaaS đa tenant được thiết kế với kiến trúc 3 tầng phân quyền: 
+                <strong>System → Tenant → Customer</strong>. Hệ thống hỗ trợ nhiều module như CRM, LMS, POS, HRM, 
+                và có thể mở rộng dễ dàng.
+            </p>
+            <p>
+                Dưới đây là các mockup HTML cho các giao diện chính và tài liệu thiết kế chi tiết.
+            </p>
+        </div>
+        
+        <div class="mockup-grid">
+            <div class="mockup-card" onclick="window.open('system-admin-dashboard.html', '_blank')">
+                <div class="mockup-preview system">🏗️</div>
+                <div class="mockup-content">
+                    <h3 class="mockup-title">System Admin Dashboard</h3>
+                    <p class="mockup-description">Giao diện quản trị hệ thống cho System Admin</p>
+                    <ul class="mockup-features">
+                        <li>Quản lý tenant và subscription</li>
+                        <li>Thống kê hệ thống tổng quan</li>
+                        <li>Quản lý gói dịch vụ và thanh toán</li>
+                        <li>Hoạt động và logs hệ thống</li>
+                    </ul>
+                    <a href="system-admin-dashboard.html" class="mockup-link" target="_blank">
+                        Xem mockup →
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mockup-card" onclick="window.open('tenant-admin-dashboard.html', '_blank')">
+                <div class="mockup-preview tenant">🏢</div>
+                <div class="mockup-content">
+                    <h3 class="mockup-title">Tenant Admin Dashboard</h3>
+                    <p class="mockup-description">Giao diện quản trị cho Admin của từng tenant</p>
+                    <ul class="mockup-features">
+                        <li>Quản lý team members và phân quyền</li>
+                        <li>Cấu hình và kích hoạt modules</li>
+                        <li>Quản lý khách hàng và dữ liệu</li>
+                        <li>Thống kê và báo cáo tenant</li>
+                    </ul>
+                    <a href="tenant-admin-dashboard.html" class="mockup-link" target="_blank">
+                        Xem mockup →
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mockup-card" onclick="window.open('customer-crm-dashboard.html', '_blank')">
+                <div class="mockup-preview crm">👥</div>
+                <div class="mockup-content">
+                    <h3 class="mockup-title">CRM Dashboard</h3>
+                    <p class="mockup-description">Giao diện CRM cho end users</p>
+                    <ul class="mockup-features">
+                        <li>Sales pipeline và lead management</li>
+                        <li>Quản lý khách hàng và cơ hội</li>
+                        <li>Theo dõi hoạt động bán hàng</li>
+                        <li>Báo cáo và phân tích hiệu suất</li>
+                    </ul>
+                    <a href="customer-crm-dashboard.html" class="mockup-link" target="_blank">
+                        Xem mockup →
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mockup-card" onclick="window.open('customer-lms-portal.html', '_blank')">
+                <div class="mockup-preview lms">📚</div>
+                <div class="mockup-content">
+                    <h3 class="mockup-title">LMS Student Portal</h3>
+                    <p class="mockup-description">Giao diện học tập cho học viên</p>
+                    <ul class="mockup-features">
+                        <li>Theo dõi tiến độ học tập</li>
+                        <li>Quản lý khóa học và bài tập</li>
+                        <li>Achievements và certificates</li>
+                        <li>Hoạt động học tập gần đây</li>
+                    </ul>
+                    <a href="customer-lms-portal.html" class="mockup-link" target="_blank">
+                        Xem mockup →
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="docs-section">
+            <h2 class="docs-title">📋 Tài liệu Thiết kế</h2>
+            <div class="docs-grid">
+                <a href="../docs/thiet-ke-tong-quan-du-an.md" class="doc-link" target="_blank">
+                    <div class="doc-icon">🎯</div>
+                    <div class="doc-info">
+                        <div class="doc-title">Thiết kế Tổng quan Dự án</div>
+                        <div class="doc-description">Mục tiêu, phạm vi và lợi ích của dự án</div>
+                    </div>
+                </a>
+                
+                <a href="../docs/thiet-ke-kien-truc-du-an.md" class="doc-link" target="_blank">
+                    <div class="doc-icon">🏗️</div>
+                    <div class="doc-info">
+                        <div class="doc-title">Thiết kế Kiến trúc Dự án</div>
+                        <div class="doc-description">Kiến trúc microservices và technology stack</div>
+                    </div>
+                </a>
+                
+                <a href="../docs/thiet-ke-kien-truc-database.md" class="doc-link" target="_blank">
+                    <div class="doc-icon">🗄️</div>
+                    <div class="doc-info">
+                        <div class="doc-title">Thiết kế Kiến trúc Database</div>
+                        <div class="doc-description">Schema design và multi-tenant strategy</div>
+                    </div>
+                </a>
+                
+                <a href="../docs/thiet-ke-ux-ui.md" class="doc-link" target="_blank">
+                    <div class="doc-icon">🎨</div>
+                    <div class="doc-info">
+                        <div class="doc-title">Thiết kế UX/UI</div>
+                        <div class="doc-description">Design system và user experience</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

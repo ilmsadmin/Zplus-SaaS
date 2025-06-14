@@ -1,0 +1,394 @@
+# Thiết kế Kiến trúc Dự án - Zplus SaaS
+
+## 1. Tổng quan Kiến trúc
+
+Zplus SaaS được xây dựng trên kiến trúc **3-tier Multi-tenant** với sự phân tách rõ ràng giữa các tầng:
+
+```
++-------------------------+
+|        System          |  ← Quản trị toàn cục (RBAC, gói dịch vụ, tenant, domain)
++-------------------------+
+            |
+            v
++-------------------------+
+|        Tenant          |  ← Quản trị trong phạm vi tenant (RBAC, user, module, khách hàng)
++-------------------------+
+            |
+            v
++-------------------------+
+|       Customer         |  ← Người dùng cuối, sử dụng dịch vụ (CRM, LMS, POS...)
++-------------------------+
+```
+
+## 2. Kiến trúc Microservices
+
+### 2.1 Sơ đồ Tổng quan
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│    Frontend     │    │   API Gateway   │    │   Load Balancer │
+│    (Next.js)    │◄──►│(GraphQL/REST)   │◄──►│    (Traefik)    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+        ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
+        │  Auth Service │ │File Service│ │Payment Svc  │
+        │  (Go/Fiber)   │ │(Go/Fiber)  │ │ (Go/Fiber)  │
+        └───────────────┘ └───────────┘ └─────────────┘
+                │               │               │
+        ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
+        │  CRM Service  │ │HRM Service │ │  POS Service│
+        │  (Go/Fiber)   │ │(Go/Fiber)  │ │ (Go/Fiber)  │
+        └───────────────┘ └───────────┘ └─────────────┘
+                │               │               │
+        ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
+        │  PostgreSQL   │ │ MongoDB   │ │    Redis    │
+        │(Relational)   │ │(Documents) │ │   (Cache)   │
+        └───────────────┘ └───────────┘ └─────────────┘
+```
+
+### 2.2 Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Frontend** | Next.js | User Interface |
+| **API Gateway** | GraphQL hoặc REST gateway | API Orchestration |
+| **Load Balancer** | Traefik | Traffic Routing |
+| **Backend Services** | Go Fiber + GORM | Business Logic |
+| **Database** | PostgreSQL + MongoDB | Data Persistence |
+| **Cache** | Redis | Session & Cache |
+| **Message Queue** | Redis/RabbitMQ | Async Processing |
+| **Auth** | JWT + RBAC | Authentication |
+
+## 3. Luồng Request
+
+### 3.1 Request Flow Diagram
+
+```
+[Client] → [Traefik] → [GraphQL Gateway] → [Microservice] → [Database]
+   │           │              │                  │              │
+   │           │              │                  │              │
+   │        Domain/         Middleware:       Business        Tenant
+   │       Subdomain        - Auth             Logic          Schema
+   │       Detection        - RBAC                            Access
+   │                       - Rate Limit
+   │                       - Tenant ID
+```
+
+### 3.2 Luồng xử lý chi tiết
+
+1. **Client Request**: `student-zin100.myapp.com/api/graphql`
+
+2. **Traefik Processing**:
+   - Phân tích subdomain: `zin100`
+   - Thêm header: `X-Tenant-ID: zin100` 
+   - Route đến GraphQL Gateway
+
+3. **GraphQL Gateway**:
+   - Middleware authentication (JWT)
+   - Middleware authorization (RBAC)
+   - Middleware tenant validation
+   - Middleware rate limiting
+   - Route đến microservice tương ứng
+
+4. **Microservice Processing**:
+   - Lấy tenant context: `GetTenantDB(c)`  
+   - Xử lý business logic
+   - Truy cập database schema tương ứng
+   - Trả về kết quả
+
+## 4. Database Architecture
+
+### 4.1 Multi-tenant Strategy: Schema per Tenant
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PostgreSQL Server                      │
+├─────────────────────────────────────────────────────────────┤
+│  Schema: public/system                                      │
+│  ├── system_users       (System Admins)                    │
+│  ├── tenants           (Tenant Registry)                   │
+│  ├── plans             (Service Plans)                     │
+│  ├── subscriptions     (Tenant Subscriptions)             │
+│  ├── modules           (Available Modules)                 │
+│  └── tenant_modules    (Enabled Modules per Tenant)       │
+├─────────────────────────────────────────────────────────────┤
+│  Schema: tenant_zin100                                      │
+│  ├── users             (Tenant Users)                      │
+│  ├── roles             (Tenant Roles)                      │
+│  ├── permissions       (Tenant Permissions)                │
+│  ├── customers         (End Customers)                     │
+│  └── modules_config    (Module Configurations)             │
+├─────────────────────────────────────────────────────────────┤
+│  Schema: tenant_acme                                        │
+│  ├── users, roles, permissions...                          │
+│  └── (Same structure as above)                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 4.2 Module-specific Tables
+
+Mỗi module sẽ có bảng riêng trong schema của tenant:
+
+**LMS Module**:
+```sql
+-- Schema: tenant_xyz
+CREATE TABLE students (id, name, email, ...);
+CREATE TABLE courses (id, title, description, ...);
+CREATE TABLE enrollments (student_id, course_id, ...);
+CREATE TABLE lessons (course_id, title, content, ...);
+CREATE TABLE quizzes (course_id, questions, ...);
+```
+
+## 5. Security Architecture
+
+### 5.1 Multi-layer Security
+
+```
+┌─────────────────────────────────────────────┐
+│              Security Layers                │
+├─────────────────────────────────────────────┤
+│ 1. Network Security (SSL/TLS, Firewall)    │
+├─────────────────────────────────────────────┤
+│ 2. Application Security (JWT, Rate Limit)  │
+├─────────────────────────────────────────────┤
+│ 3. Authorization (RBAC Multi-tier)         │
+├─────────────────────────────────────────────┤
+│ 4. Data Security (Encryption, Audit)       │
+├─────────────────────────────────────────────┤
+│ 5. Tenant Isolation (Schema Separation)    │
+└─────────────────────────────────────────────┘
+```
+
+### 5.2 RBAC Model
+
+**System Level**:
+- Super Admin
+- System Admin  
+- Support Staff
+
+**Tenant Level**:
+- Tenant Admin
+- Manager
+- User
+- Viewer
+
+**Customer Level**:
+- Module-specific roles (Student, Teacher, Salesperson...)
+
+## 6. Scalability & Performance
+
+### 6.1 Horizontal Scaling
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  App Instance 1 │    │  App Instance 2 │    │  App Instance N │
+│   (Container)   │    │   (Container)   │    │   (Container)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   Load Balancer │
+                    │    (Traefik)    │
+                    └─────────────────┘
+```
+
+### 6.2 Database Scaling
+
+- **Read Replicas**: Cho read-heavy operations
+- **Connection Pooling**: Optimize database connections  
+- **Redis Caching**: Cache frequently accessed data
+- **Database Sharding**: Phân chia tenant theo regions
+
+### 6.3 Performance Optimization
+
+- **CDN**: Static assets delivery
+- **Lazy Loading**: Module loading on demand
+- **Database Indexing**: Optimized queries
+- **Background Jobs**: Async processing với Redis Queue
+
+## 7. Module System Architecture
+
+### 7.1 Module Registry
+
+```go
+type BaseModule interface {
+    GetName() string
+    GetVersion() string
+    GetDependencies() []string
+    Install(tenantID string) error
+    Uninstall(tenantID string) error
+    GetRoutes() []Route
+    GetPermissions() []Permission
+}
+```
+
+### 7.2 Module Lifecycle
+
+1. **Module Registration**: Đăng ký module trong system
+2. **Tenant Activation**: Kích hoạt module cho tenant
+3. **Schema Migration**: Tạo tables cần thiết
+4. **Route Registration**: Đăng ký API routes
+5. **Permission Setup**: Thiết lập permissions
+
+## 8. Project Structure - Monorepo Architecture
+
+### 8.1 Cấu trúc dự án tách rời các module service
+
+```
+zplus-saas/
+│
+├── apps/
+│   ├── backend/
+│   │   ├── gateway/            # GraphQL hoặc REST gateway, xử lý auth/tenant
+│   │   ├── auth/               # Xác thực + RBAC
+│   │   ├── file/               # Quản lý file (upload/download)
+│   │   ├── payment/            # Giao dịch & subscription
+│   │   ├── crm/                # Khách hàng, liên hệ
+│   │   ├── hrm/                # Nhân viên, chấm công, lương
+│   │   ├── pos/                # Bán hàng: sản phẩm, hóa đơn
+│   │   └── shared/             # Thư viện dùng chung
+│   │
+│   ├── frontend/
+│   │   ├── web/                # Website chính (Next.js)
+│   │   │   └── system/         # Giao diện quản lý của system admin
+│   │   ├── admin/              # Giao diện quản lý (theo tenant)
+│   │   └── ui/                 # UI components dùng chung
+│
+├── pkg/                        # SDK, lib dùng lại (go + js)
+│
+├── infra/
+│   ├── db/                     # Migration cho system & tenants
+│   ├── k8s/                    # Kubernetes manifests
+│   ├── docker/                 # Dockerfiles
+│   └── ci-cd/                  # GitHub Actions, ArgoCD
+│
+└── docs/
+    └── architecture.md         # Tài liệu thiết kế hệ thống
+```
+
+### 8.2 Backend Services Architecture (Go Fiber + GORM)
+
+**Gateway Service**:
+```go
+// apps/backend/gateway/
+├── main.go                     # Entry point
+├── handlers/                   # HTTP handlers
+│   ├── graphql.go
+│   └── rest.go
+├── middleware/                 # Middleware layers
+│   ├── auth.go
+│   ├── tenant.go
+│   └── ratelimit.go
+└── config/                     # Configuration
+    └── config.go
+```
+
+**Authentication Service**:
+```go
+// apps/backend/auth/
+├── main.go
+├── models/                     # GORM models
+│   ├── user.go
+│   ├── role.go
+│   └── permission.go
+├── services/                   # Business logic
+│   ├── auth.go
+│   └── rbac.go
+└── handlers/                   # HTTP handlers
+    └── auth.go
+```
+
+**Module Services** (CRM, HRM, POS):
+```go
+// apps/backend/{module}/
+├── main.go
+├── models/                     # GORM models specific to module
+├── services/                   # Business logic
+├── handlers/                   # HTTP handlers
+└── migrations/                 # Database migrations
+```
+
+### 8.3 Frontend Architecture (Next.js)
+
+**System Admin Frontend**:
+```
+// apps/frontend/web/system/
+├── pages/                      # Next.js pages
+│   ├── dashboard/
+│   ├── tenants/
+│   └── plans/
+├── components/                 # React components
+├── hooks/                      # Custom hooks
+└── api/                        # API integration
+```
+
+**Tenant Admin Frontend**:
+```
+// apps/frontend/admin/
+├── pages/                      # Next.js pages
+├── components/                 # React components
+├── contexts/                   # React contexts (tenant-specific)
+└── api/                        # API integration
+```
+
+**Shared UI Components**:
+```
+// apps/frontend/ui/
+├── components/                 # Reusable components
+├── styles/                     # Shared styles
+└── themes/                     # Multi-tenant theming
+```
+
+## 9. Deployment Architecture
+
+### 8.1 Container Orchestration
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  traefik:
+    image: traefik:v2.10
+    ports: ["80:80", "443:443"]
+  
+  app:
+    build: .
+    deploy:
+      replicas: 3
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+  
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=zplus_saas
+  
+  redis:
+    image: redis:7-alpine
+```
+
+### 8.2 Environment Architecture
+
+- **Development**: Single instance, local database
+- **Staging**: Multi-instance, shared database  
+- **Production**: Clustered, replicated database
+
+## 9. Monitoring & Observability
+
+### 9.1 Monitoring Stack
+
+- **Metrics**: Prometheus + Grafana
+- **Logging**: ELK Stack (Elasticsearch, Logstash, Kibana)
+- **Tracing**: Jaeger
+- **Health Checks**: Built-in endpoints
+- **Alerting**: Grafana Alerts
+
+### 9.2 Key Metrics
+
+- **System**: CPU, Memory, Disk usage
+- **Application**: Response time, Error rate, Throughput
+- **Business**: Tenant count, Active users, Revenue

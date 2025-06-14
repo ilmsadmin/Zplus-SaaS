@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Dashboard - ABC Corporation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-blue: #2563eb;
+            --primary-blue-light: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --green: #10b981;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --purple: #8b5cf6;
+            --blue-50: #eff6ff;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+        
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .module-branding {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .module-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-blue);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .module-info h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+        
+        .module-info p {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+        
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-item {
+            color: var(--gray-600);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .nav-item:hover,
+        .nav-item.active {
+            background: var(--blue-50);
+            color: var(--primary-blue);
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+        
+        .user-menu:hover {
+            background: var(--gray-100);
+        }
+        
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: var(--gray-600);
+        }
+        
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-blue-light);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+            position: relative;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 0.75rem 0.75rem 0 0;
+        }
+        
+        .stat-card.leads::before { background: var(--green); }
+        .stat-card.opportunities::before { background: var(--orange); }
+        .stat-card.customers::before { background: var(--purple); }
+        .stat-card.revenue::before { background: var(--red); }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-icon {
+            font-size: 1.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-change {
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .stat-change.positive {
+            color: var(--green);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .card-header {
+            padding: 1.5rem 1.5rem 0;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .card-content {
+            padding: 0 1.5rem 1.5rem;
+        }
+        
+        .pipeline {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+        
+        .pipeline-stage {
+            min-width: 250px;
+            background: var(--gray-50);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stage-title {
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+        
+        .stage-count {
+            background: var(--gray-200);
+            color: var(--gray-600);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .lead-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .lead-card:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+        }
+        
+        .lead-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .lead-company {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+        }
+        
+        .lead-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--green);
+        }
+        
+        .activity-list {
+            list-style: none;
+        }
+        
+        .activity-item {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        
+        .activity-icon.call {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .activity-icon.email {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .activity-icon.meeting {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .activity-description {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+        
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+        
+        .full-width-card {
+            grid-column: 1 / -1;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pipeline {
+                flex-direction: column;
+            }
+            
+            .pipeline-stage {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="module-branding">
+            <div class="module-icon">👥</div>
+            <div class="module-info">
+                <h1>CRM Dashboard</h1>
+                <p>ABC Corporation • Customer Relationship Management</p>
+            </div>
+        </div>
+        <nav class="nav">
+            <a href="#" class="nav-item active">Dashboard</a>
+            <a href="#" class="nav-item">Leads</a>
+            <a href="#" class="nav-item">Customers</a>
+            <a href="#" class="nav-item">Opportunities</a>
+            <a href="#" class="nav-item">Reports</a>
+        </nav>
+        <div class="user-menu">
+            <div class="avatar">JS</div>
+            <span>Jane Smith</span>
+            <span>▼</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Sales Dashboard</h1>
+                <p class="page-subtitle">Theo dõi leads, opportunities và hoạt động bán hàng</p>
+            </div>
+            <div class="quick-actions">
+                <button class="btn btn-secondary">📊 Export Report</button>
+                <button class="btn btn-primary">➕ Add Lead</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card leads">
+                <div class="stat-header">
+                    <div class="stat-icon">🎯</div>
+                </div>
+                <div class="stat-label">Total Leads</div>
+                <div class="stat-value">156</div>
+                <div class="stat-change positive">
+                    ↗ +12% từ tháng trước
+                </div>
+            </div>
+            <div class="stat-card opportunities">
+                <div class="stat-header">
+                    <div class="stat-icon">💼</div>
+                </div>
+                <div class="stat-label">Opportunities</div>
+                <div class="stat-value">34</div>
+                <div class="stat-change positive">
+                    ↗ +8% từ tháng trước
+                </div>
+            </div>
+            <div class="stat-card customers">
+                <div class="stat-header">
+                    <div class="stat-icon">👤</div>
+                </div>
+                <div class="stat-label">Customers</div>
+                <div class="stat-value">1,247</div>
+                <div class="stat-change positive">
+                    ↗ +18 khách hàng mới
+                </div>
+            </div>
+            <div class="stat-card revenue">
+                <div class="stat-header">
+                    <div class="stat-icon">💰</div>
+                </div>
+                <div class="stat-label">Monthly Revenue</div>
+                <div class="stat-value">$45,230</div>
+                <div class="stat-change positive">
+                    ↗ +25% từ tháng trước
+                </div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Sales Pipeline</h2>
+                    <button class="btn btn-secondary">View All</button>
+                </div>
+                <div class="card-content">
+                    <div class="pipeline">
+                        <div class="pipeline-stage">
+                            <div class="stage-header">
+                                <span class="stage-title">New Leads</span>
+                                <span class="stage-count">12</span>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">Website Redesign</div>
+                                <div class="lead-company">TechCorp Inc.</div>
+                                <div class="lead-value">$15,000</div>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">Marketing Campaign</div>
+                                <div class="lead-company">StartupXYZ</div>
+                                <div class="lead-value">$8,500</div>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">Mobile App</div>
+                                <div class="lead-company">RetailCorp</div>
+                                <div class="lead-value">$25,000</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pipeline-stage">
+                            <div class="stage-header">
+                                <span class="stage-title">Qualified</span>
+                                <span class="stage-count">8</span>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">E-commerce Platform</div>
+                                <div class="lead-company">FashionBrand</div>
+                                <div class="lead-value">$35,000</div>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">CRM Integration</div>
+                                <div class="lead-company">SalesForce Ltd</div>
+                                <div class="lead-value">$12,000</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pipeline-stage">
+                            <div class="stage-header">
+                                <span class="stage-title">Proposal</span>
+                                <span class="stage-count">5</span>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">Data Analytics</div>
+                                <div class="lead-company">DataCorp</div>
+                                <div class="lead-value">$50,000</div>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">Cloud Migration</div>
+                                <div class="lead-company">Enterprise Ltd</div>
+                                <div class="lead-value">$75,000</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pipeline-stage">
+                            <div class="stage-header">
+                                <span class="stage-title">Negotiation</span>
+                                <span class="stage-count">3</span>
+                            </div>
+                            <div class="lead-card">
+                                <div class="lead-title">Custom Software</div>
+                                <div class="lead-company">ManufacturingCorp</div>
+                                <div class="lead-value">$120,000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Recent Activities</h2>
+                    <button class="btn btn-secondary">View All</button>
+                </div>
+                <div class="card-content">
+                    <ul class="activity-list">
+                        <li class="activity-item">
+                            <div class="activity-icon call">📞</div>
+                            <div class="activity-content">
+                                <div class="activity-title">Follow-up call</div>
+                                <div class="activity-description">Called TechCorp about website redesign project</div>
+                                <div class="activity-time">2 giờ trước</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-icon email">✉️</div>
+                            <div class="activity-content">
+                                <div class="activity-title">Proposal sent</div>
+                                <div class="activity-description">Sent proposal to DataCorp for analytics project</div>
+                                <div class="activity-time">4 giờ trước</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-icon meeting">🤝</div>
+                            <div class="activity-content">
+                                <div class="activity-title">Client meeting</div>
+                                <div class="activity-description">Met with Enterprise Ltd for cloud migration discussion</div>
+                                <div class="activity-time">1 ngày trước</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-icon call">📞</div>
+                            <div class="activity-content">
+                                <div class="activity-title">New lead</div>
+                                <div class="activity-description">Added RetailCorp as new lead for mobile app project</div>
+                                <div class="activity-time">2 ngày trước</div>
+                            </div>
+                        </li>
+                        <li class="activity-item">
+                            <div class="activity-icon email">✉️</div>
+                            <div class="activity-content">
+                                <div class="activity-title">Contract signed</div>
+                                <div class="activity-description">StartupXYZ signed marketing campaign contract</div>
+                                <div class="activity-time">3 ngày trước</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width-card">
+            <div class="card-header">
+                <h2 class="card-title">Performance Overview</h2>
+                <div class="quick-actions">
+                    <button class="btn btn-secondary">This Month</button>
+                    <button class="btn btn-secondary">This Quarter</button>
+                    <button class="btn btn-secondary">This Year</button>
+                </div>
+            </div>
+            <div class="card-content">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; padding: 1rem 0;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--green); margin-bottom: 0.5rem;">78%</div>
+                        <div style="font-size: 0.875rem; color: var(--gray-600);">Lead Conversion Rate</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--orange); margin-bottom: 0.5rem;">24</div>
+                        <div style="font-size: 0.875rem; color: var(--gray-600);">Deals Closed This Month</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--purple); margin-bottom: 0.5rem;">$185K</div>
+                        <div style="font-size: 0.875rem; color: var(--gray-600);">Pipeline Value</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--red); margin-bottom: 0.5rem;">4.2</div>
+                        <div style="font-size: 0.875rem; color: var(--gray-600);">Avg. Deal Size (K)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
