@@ -2,15 +2,23 @@
 
 ## 1. Tổng quan Database Architecture
 
-Zplus SaaS sử dụng PostgreSQL với chiến lược **Schema-per-Tenant** để đảm bảo cô lập dữ liệu giữa các tenant trong khi vẫn tối ưu hóa hiệu suất và chi phí vận hành.
+Zplus SaaS sử dụng **Hybrid Database Strategy** với PostgreSQL cho dữ liệu quan hệ và MongoDB cho dữ liệu phi cấu trúc, kết hợp với chiến lược **Schema-per-Tenant** để đảm bảo cô lập dữ liệu giữa các tenant trong khi vẫn tối ưu hóa hiệu suất và chi phí vận hành.
 
-## 2. Multi-tenant Database Strategy
+## 2. Multi-Database Strategy
 
-### 2.1 Schema Separation Strategy
+### 2.1 Database Technology Selection
+
+| Database | Use Cases | Purpose |
+|----------|-----------|---------|
+| **PostgreSQL** | User data, Transactions, Relations | Structured data with ACID properties |
+| **MongoDB** | Files, Logs, Analytics, Flexible schemas | Document storage and unstructured data |
+| **Redis** | Session, Cache, Queue | High-performance caching and real-time data |
+
+### 2.2 Schema Separation Strategy (PostgreSQL)
 
 ```sql
--- Single PostgreSQL Server
--- Multiple Schemas for isolation
+-- PostgreSQL Multi-tenant Architecture
+-- Multiple Schemas for tenant isolation
 
 ┌─────────────────────────────────────────────────────────────┐
 │                   PostgreSQL Server                         │
@@ -29,19 +37,44 @@ Zplus SaaS sử dụng PostgreSQL với chiến lược **Schema-per-Tenant** đ
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Lợi ích của Schema-per-Tenant
+### 2.3 Collection Separation Strategy (MongoDB)
+
+```javascript
+// MongoDB Multi-tenant Architecture
+// Database-per-tenant approach for MongoDB
+
+┌─────────────────────────────────────────────────────────────┐
+│                     MongoDB Server                          │
+├─────────────────────────────────────────────────────────────┤
+│  Database: system                                           │
+│  └── System-wide logs and analytics                         │
+├─────────────────────────────────────────────────────────────┤
+│  Database: tenant_company_a                                 │
+│  └── Company A files, logs, flexible data                   │
+├─────────────────────────────────────────────────────────────┤
+│  Database: tenant_company_b                                 │
+│  └── Company B files, logs, flexible data                   │
+├─────────────────────────────────────────────────────────────┤
+│  Database: tenant_zin100                                    │
+│  └── Zin100 files, logs, flexible data                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 Lợi ích của Schema-per-Tenant và Database-per-Tenant
 
 **Ưu điểm:**
 - **Data Isolation**: Dữ liệu được tách biệt hoàn toàn
 - **Security**: Không thể truy cập cross-tenant data
 - **Backup**: Có thể backup riêng từng tenant
 - **Scalability**: Dễ dàng migrate tenant sang server khác
-- **Customization**: Mỗi tenant có thể có schema tùy chỉnh
+- **Customization**: Mỗi tenant có thể có schema/database tùy chỉnh
+- **Performance**: MongoDB cung cấp hiệu suất cao cho document queries
 
 **Nhược điểm:**
 - **Complexity**: Phức tạp hơn single-database approach
-- **Maintenance**: Cần migration cho tất cả schemas
+- **Maintenance**: Cần migration cho tất cả schemas/databases
 - **Resource**: Có thể tốn nhiều connection pool
+- **Consistency**: Cần xử lý cross-database transactions cẩn thận
 
 ## 3. System Layer Database Design
 
@@ -612,4 +645,262 @@ SELECT
 FROM pg_stat_statements 
 ORDER BY total_time DESC
 LIMIT 10;
+```
+
+## 9. MongoDB Database Design
+
+### 9.1 System Database Collections
+
+```javascript
+// Database: system
+// Collection: system_logs
+{
+  _id: ObjectId,
+  timestamp: ISODate,
+  level: "info" | "warning" | "error",
+  service: "gateway" | "auth" | "crm" | "hrm" | "pos",
+  message: String,
+  metadata: Object,
+  tenant_id: String // for filtering
+}
+
+// Collection: system_analytics
+{
+  _id: ObjectId,
+  date: ISODate,
+  metric_type: "usage" | "performance" | "business",
+  tenant_id: String,
+  data: {
+    users_active: Number,
+    requests_count: Number,
+    response_time_avg: Number,
+    // ... other metrics
+  }
+}
+```
+
+### 9.2 Tenant Database Collections
+
+```javascript
+// Database: tenant_{slug}
+// Collection: files
+{
+  _id: ObjectId,
+  filename: String,
+  original_name: String,
+  mime_type: String,
+  size: Number,
+  path: String,
+  uploaded_by: ObjectId, // Reference to user
+  module: "crm" | "hrm" | "pos" | "lms",
+  tags: [String],
+  metadata: Object,
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Collection: audit_logs
+{
+  _id: ObjectId,
+  user_id: ObjectId,
+  action: String,
+  resource: String,
+  resource_id: String,
+  changes: {
+    before: Object,
+    after: Object
+  },
+  ip_address: String,
+  user_agent: String,
+  timestamp: ISODate
+}
+
+// Collection: notifications
+{
+  _id: ObjectId,
+  user_id: ObjectId,
+  type: "email" | "push" | "sms",
+  title: String,
+  message: String,
+  data: Object,
+  read: Boolean,
+  sent: Boolean,
+  created_at: ISODate
+}
+```
+
+### 9.3 Module-specific Collections
+
+```javascript
+// CRM Module
+// Collection: crm_activities
+{
+  _id: ObjectId,
+  customer_id: ObjectId, // Reference to PostgreSQL
+  type: "call" | "email" | "meeting" | "note",
+  subject: String,
+  description: String,
+  attachments: [ObjectId], // References to files collection
+  user_id: ObjectId,
+  timestamp: ISODate,
+  metadata: Object
+}
+
+// LMS Module  
+// Collection: lms_course_content
+{
+  _id: ObjectId,
+  course_id: ObjectId, // Reference to PostgreSQL
+  lesson_id: ObjectId, // Reference to PostgreSQL
+  content_type: "video" | "document" | "quiz" | "assignment",
+  content_data: Object,
+  files: [ObjectId], // References to files collection
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// HRM Module
+// Collection: hrm_timesheets
+{
+  _id: ObjectId,
+  employee_id: ObjectId, // Reference to PostgreSQL
+  date: ISODate,
+  entries: [{
+    start_time: ISODate,
+    end_time: ISODate,
+    break_duration: Number,
+    project_id: ObjectId,
+    task_description: String,
+    location: {
+      type: "Point",
+      coordinates: [Number, Number]
+    }
+  }],
+  total_hours: Number,
+  status: "draft" | "submitted" | "approved"
+}
+```
+
+## 10. Redis Cache Strategy
+
+### 10.1 Cache Structure
+
+```javascript
+// Session Cache
+session:{session_id} = {
+  user_id: Number,
+  tenant_id: String,
+  roles: [String],
+  permissions: [String],
+  last_activity: Timestamp,
+  expires_at: Timestamp
+}
+
+// Tenant Cache
+tenant:{tenant_slug} = {
+  id: Number,
+  name: String,
+  schema_name: String,
+  settings: Object,
+  active_modules: [String],
+  expires_at: Timestamp
+}
+
+// User Cache
+user:{user_id}:{tenant_id} = {
+  id: Number,
+  email: String,
+  name: String,
+  roles: [String],
+  permissions: [String],
+  expires_at: Timestamp
+}
+```
+
+### 10.2 Cache Patterns
+
+```javascript
+// Cache Aside Pattern
+function getUser(userId, tenantId) {
+  key = `user:${userId}:${tenantId}`
+  
+  // Try cache first
+  user = redis.get(key)
+  if (user) return user
+  
+  // Fallback to database
+  user = database.getUser(userId, tenantId)
+  
+  // Cache the result
+  redis.setex(key, 3600, user)
+  return user
+}
+
+// Write Through Pattern
+function updateUser(userId, tenantId, userData) {
+  key = `user:${userId}:${tenantId}`
+  
+  // Update database
+  database.updateUser(userId, tenantId, userData)
+  
+  // Update cache
+  redis.setex(key, 3600, userData)
+}
+```
+
+## 11. Data Integration Patterns
+
+### 11.1 PostgreSQL ↔ MongoDB Sync
+
+```go
+// GORM Event Hooks for MongoDB sync
+func (u *User) AfterCreate(tx *gorm.DB) error {
+    // Sync to MongoDB for audit logging
+    auditLog := AuditLog{
+        UserID:    u.ID,
+        Action:    "create",
+        Resource:  "user",
+        Changes:   map[string]interface{}{"after": u},
+        Timestamp: time.Now(),
+    }
+    
+    return mongoClient.Database(u.TenantID).
+        Collection("audit_logs").
+        InsertOne(context.Background(), auditLog)
+}
+```
+
+### 11.2 Cross-Database Queries
+
+```go
+// Service layer handling multiple databases
+type CustomerService struct {
+    pgDB    *gorm.DB
+    mongoDB *mongo.Database
+}
+
+func (s *CustomerService) GetCustomerWithActivities(customerID uint) (*CustomerWithActivities, error) {
+    // Get customer from PostgreSQL
+    var customer Customer
+    err := s.pgDB.First(&customer, customerID).Error
+    if err != nil {
+        return nil, err
+    }
+    
+    // Get activities from MongoDB
+    var activities []Activity
+    cursor, err := s.mongoDB.Collection("crm_activities").
+        Find(context.Background(), bson.M{"customer_id": customerID})
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.Background())
+    
+    cursor.All(context.Background(), &activities)
+    
+    return &CustomerWithActivities{
+        Customer:   customer,
+        Activities: activities,
+    }, nil
+}
 ```

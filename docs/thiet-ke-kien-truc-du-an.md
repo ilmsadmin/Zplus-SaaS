@@ -27,19 +27,24 @@ Zplus SaaS được xây dựng trên kiến trúc **3-tier Multi-tenant** với
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │    Frontend     │    │   API Gateway   │    │   Load Balancer │
-│  (React/Vue)    │◄──►│   (GraphQL)     │◄──►│    (Traefik)    │
+│    (Next.js)    │◄──►│(GraphQL/REST)   │◄──►│    (Traefik)    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                 │
                 ┌───────────────┼───────────────┐
                 │               │               │
         ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
-        │ System Service│ │Tenant Svc │ │Customer Svc │
-        │   (Go/Fiber)  │ │(Go/Fiber) │ │ (Go/Fiber)  │
+        │  Auth Service │ │File Service│ │Payment Svc  │
+        │  (Go/Fiber)   │ │(Go/Fiber)  │ │ (Go/Fiber)  │
         └───────────────┘ └───────────┘ └─────────────┘
                 │               │               │
         ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
-        │  PostgreSQL   │ │PostgreSQL │ │  PostgreSQL │
-        │ (system db)   │ │(tenant_*)  │ │(module dbs) │
+        │  CRM Service  │ │HRM Service │ │  POS Service│
+        │  (Go/Fiber)   │ │(Go/Fiber)  │ │ (Go/Fiber)  │
+        └───────────────┘ └───────────┘ └─────────────┘
+                │               │               │
+        ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
+        │  PostgreSQL   │ │ MongoDB   │ │    Redis    │
+        │(Relational)   │ │(Documents) │ │   (Cache)   │
         └───────────────┘ └───────────┘ └─────────────┘
 ```
 
@@ -47,11 +52,11 @@ Zplus SaaS được xây dựng trên kiến trúc **3-tier Multi-tenant** với
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| **Frontend** | React/Vue.js | User Interface |
-| **API Gateway** | GraphQL (Go) | API Orchestration |
+| **Frontend** | Next.js | User Interface |
+| **API Gateway** | GraphQL hoặc REST gateway | API Orchestration |
 | **Load Balancer** | Traefik | Traffic Routing |
-| **Backend Services** | Go + Fiber | Business Logic |
-| **Database** | PostgreSQL | Data Persistence |
+| **Backend Services** | Go Fiber + GORM | Business Logic |
+| **Database** | PostgreSQL + MongoDB | Data Persistence |
 | **Cache** | Redis | Session & Cache |
 | **Message Queue** | Redis/RabbitMQ | Async Processing |
 | **Auth** | JWT + RBAC | Authentication |
@@ -228,7 +233,116 @@ type BaseModule interface {
 4. **Route Registration**: Đăng ký API routes
 5. **Permission Setup**: Thiết lập permissions
 
-## 8. Deployment Architecture
+## 8. Project Structure - Monorepo Architecture
+
+### 8.1 Cấu trúc dự án tách rời các module service
+
+```
+zplus-saas/
+│
+├── apps/
+│   ├── backend/
+│   │   ├── gateway/            # GraphQL hoặc REST gateway, xử lý auth/tenant
+│   │   ├── auth/               # Xác thực + RBAC
+│   │   ├── file/               # Quản lý file (upload/download)
+│   │   ├── payment/            # Giao dịch & subscription
+│   │   ├── crm/                # Khách hàng, liên hệ
+│   │   ├── hrm/                # Nhân viên, chấm công, lương
+│   │   ├── pos/                # Bán hàng: sản phẩm, hóa đơn
+│   │   └── shared/             # Thư viện dùng chung
+│   │
+│   ├── frontend/
+│   │   ├── web/                # Website chính (Next.js)
+│   │   │   └── system/         # Giao diện quản lý của system admin
+│   │   ├── admin/              # Giao diện quản lý (theo tenant)
+│   │   └── ui/                 # UI components dùng chung
+│
+├── pkg/                        # SDK, lib dùng lại (go + js)
+│
+├── infra/
+│   ├── db/                     # Migration cho system & tenants
+│   ├── k8s/                    # Kubernetes manifests
+│   ├── docker/                 # Dockerfiles
+│   └── ci-cd/                  # GitHub Actions, ArgoCD
+│
+└── docs/
+    └── architecture.md         # Tài liệu thiết kế hệ thống
+```
+
+### 8.2 Backend Services Architecture (Go Fiber + GORM)
+
+**Gateway Service**:
+```go
+// apps/backend/gateway/
+├── main.go                     # Entry point
+├── handlers/                   # HTTP handlers
+│   ├── graphql.go
+│   └── rest.go
+├── middleware/                 # Middleware layers
+│   ├── auth.go
+│   ├── tenant.go
+│   └── ratelimit.go
+└── config/                     # Configuration
+    └── config.go
+```
+
+**Authentication Service**:
+```go
+// apps/backend/auth/
+├── main.go
+├── models/                     # GORM models
+│   ├── user.go
+│   ├── role.go
+│   └── permission.go
+├── services/                   # Business logic
+│   ├── auth.go
+│   └── rbac.go
+└── handlers/                   # HTTP handlers
+    └── auth.go
+```
+
+**Module Services** (CRM, HRM, POS):
+```go
+// apps/backend/{module}/
+├── main.go
+├── models/                     # GORM models specific to module
+├── services/                   # Business logic
+├── handlers/                   # HTTP handlers
+└── migrations/                 # Database migrations
+```
+
+### 8.3 Frontend Architecture (Next.js)
+
+**System Admin Frontend**:
+```
+// apps/frontend/web/system/
+├── pages/                      # Next.js pages
+│   ├── dashboard/
+│   ├── tenants/
+│   └── plans/
+├── components/                 # React components
+├── hooks/                      # Custom hooks
+└── api/                        # API integration
+```
+
+**Tenant Admin Frontend**:
+```
+// apps/frontend/admin/
+├── pages/                      # Next.js pages
+├── components/                 # React components
+├── contexts/                   # React contexts (tenant-specific)
+└── api/                        # API integration
+```
+
+**Shared UI Components**:
+```
+// apps/frontend/ui/
+├── components/                 # Reusable components
+├── styles/                     # Shared styles
+└── themes/                     # Multi-tenant theming
+```
+
+## 9. Deployment Architecture
 
 ### 8.1 Container Orchestration
 
