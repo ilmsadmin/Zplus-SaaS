@@ -24,7 +24,13 @@ Zplus SaaS is a multi-tenant platform built with modern microservices architectu
 ### Infrastructure
 - **Docker** - Containerization
 - **Kubernetes** - Container orchestration
-- **Traefik** - Load balancing and reverse proxy
+- **Traefik** - Load balancing, reverse proxy, and multi-tenant routing
+
+### Message Queue Strategy
+- **Redis Queue** - Background job processing and async operations
+- **Redis Pub/Sub** - Real-time notifications and live updates
+
+*Note: Kafka is not currently part of the architecture. Redis provides sufficient message processing capabilities for our current scale and use cases. Kafka would be considered for future requirements involving high-throughput event streaming (>100K msg/s) or event sourcing patterns.*
 
 ## Architecture Principles
 
@@ -125,8 +131,63 @@ zplus-saas/
 ### Redis (Cache & Sessions)
 - User sessions and authentication tokens
 - Frequently accessed data caching
-- Real-time data and pub/sub
-- Queue management for background jobs
+- Real-time data and pub/sub messaging
+- Background job queue management
+- Async processing workflows
+
+## Message Queue & Event Processing
+
+### Redis-based Message Processing
+
+**Queue Management**:
+```go
+// Background job processing
+type Job struct {
+    ID       string                 `json:"id"`
+    Type     string                 `json:"type"`
+    Payload  map[string]interface{} `json:"payload"`
+    TenantID string                 `json:"tenant_id"`
+    Priority int                    `json:"priority"`
+}
+
+// Common job types:
+// - Email notifications
+// - PDF report generation
+// - Data exports/imports
+// - Webhook deliveries
+// - Audit log processing
+```
+
+**Pub/Sub for Real-time Updates**:
+```go
+// Real-time notification channels
+channels := []string{
+    "tenant:{slug}:notifications",
+    "tenant:{slug}:chat",
+    "system:maintenance",
+    "module:{module_name}:updates",
+}
+```
+
+### When to Consider Kafka
+
+Current architecture uses Redis for message processing. Kafka would be considered when:
+
+- **High Throughput**: > 100K messages/second required
+- **Event Sourcing**: Need for event store and replay capabilities  
+- **Cross-System Events**: Complex event streaming between services
+- **Analytics Pipeline**: Real-time data processing and analytics
+- **Audit Compliance**: Immutable event log requirements
+
+**Comparison Matrix**:
+
+| Feature | Redis Queue | Kafka | Current Choice |
+|---------|-------------|-------|----------------|
+| Setup Complexity | Low | High | ✅ Redis |
+| Latency | < 1ms | 5-10ms | ✅ Redis |
+| Throughput | 100K msg/s | 1M+ msg/s | Redis sufficient |
+| Persistence | Optional | Durable | Redis adequate |
+| Use Case Fit | Simple queues | Event streaming | ✅ Multi-tenant SaaS |
 
 ## Multi-Tenant Architecture
 
@@ -175,6 +236,35 @@ func TenantMiddleware() fiber.Handler {
 ```
 
 ## Deployment Strategy
+
+### Traefik Configuration
+
+**Multi-tenant Routing with Traefik**:
+```yaml
+# Traefik middleware for tenant extraction
+http:
+  middlewares:
+    tenant-headers:
+      headers:
+        customRequestHeaders:
+          X-Tenant-ID: "{{ .Request.Host | regexReplaceAll `^([^.]+)\..*` `$1` }}"
+    
+    tenant-auth:
+      forwardAuth:
+        address: "http://auth-service:8081/auth/validate"
+        authRequestHeaders:
+          - "X-Tenant-ID"
+          
+  routers:
+    api-router:
+      rule: "Host(`{subdomain:[a-z0-9-]+}.zplus.com`)"
+      service: gateway-service
+      middlewares:
+        - tenant-headers
+        - tenant-auth
+      tls:
+        certResolver: letsencrypt
+```
 
 ### Development Environment
 - Docker Compose for local development

@@ -1,6 +1,30 @@
 version: '3.8'
 
 services:
+  # Traefik - Load Balancer & Reverse Proxy for Multi-tenant Architecture
+  traefik:
+    image: traefik:v2.10
+    container_name: zplus-traefik
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS  
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "./dynamic.yml:/etc/traefik/dynamic.yml:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - zplus-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+
+  # Database Services
   postgres:
     image: postgres:15-alpine
     container_name: zplus-postgres
@@ -15,6 +39,7 @@ services:
       - "5432:5432"
     networks:
       - zplus-network
+    restart: unless-stopped
 
   mongodb:
     image: mongo:7-jammy
@@ -29,6 +54,7 @@ services:
       - "27017:27017"
     networks:
       - zplus-network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -40,13 +66,14 @@ services:
       - "6379:6379"
     networks:
       - zplus-network
+    restart: unless-stopped
 
   # Development services (optional)
   adminer:
     image: adminer
     container_name: zplus-adminer
     ports:
-      - "8080:8080"
+      - "8090:8080"  # Changed to avoid conflict with Traefik dashboard
     networks:
       - zplus-network
     depends_on:
