@@ -133,7 +133,7 @@ func seedInitialData() error {
 		}
 
 		// Hash password properly - this is just for demo, in production use bcrypt
-		hashedPassword := "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPmOXz7w8MRoW" // "admin123"
+		hashedPassword := "$2a$10$fk/JQYlkiMgxjNWuMK2fOOXGnlZ5dhOq3gpgARS5AHZhfLszmrYYm" // "admin123"
 
 		adminUser = User{
 			Email:     "admin@zplus.com",
@@ -174,7 +174,7 @@ func seedInitialData() error {
 			return fmt.Errorf("failed to find Tenant Admin role: %v", err)
 		}
 
-		hashedPassword := "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPmOXz7w8MRoW" // "admin123"
+		hashedPassword := "$2a$10$fk/JQYlkiMgxjNWuMK2fOOXGnlZ5dhOq3gpgARS5AHZhfLszmrYYm" // "admin123"
 
 		tenantAdminUser = User{
 			Email:     "tenant@demo.com",
@@ -200,7 +200,7 @@ func seedInitialData() error {
 			return fmt.Errorf("failed to find Student role: %v", err)
 		}
 
-		hashedPassword := "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPmOXz7w8MRoW" // "admin123"
+		hashedPassword := "$2a$10$fk/JQYlkiMgxjNWuMK2fOOXGnlZ5dhOq3gpgARS5AHZhfLszmrYYm" // "admin123"
 
 		customerUser = User{
 			Email:     "user@demo.com",
