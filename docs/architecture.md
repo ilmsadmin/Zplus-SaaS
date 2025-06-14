@@ -64,7 +64,13 @@ Zplus SaaS is a multi-tenant platform built with modern microservices architectu
 zplus-saas/
 ├── apps/
 │   ├── backend/
-│   │   ├── gateway/            # API Gateway (Go Fiber)
+│   │   ├── gateway/            # API Gateway (Go Fiber + GraphQL)
+│   │   │   ├── examples/       # GraphQL query examples
+│   │   │   ├── generated/      # Auto-generated GraphQL code
+│   │   │   ├── middleware/     # Authentication & tenant middleware
+│   │   │   ├── resolver/       # GraphQL resolvers
+│   │   │   ├── schema/         # GraphQL schema definitions
+│   │   │   └── types/          # Custom types and models
 │   │   ├── auth/               # Authentication Service
 │   │   ├── file/               # File Management Service
 │   │   ├── payment/            # Payment & Subscription
@@ -73,17 +79,36 @@ zplus-saas/
 │   │   ├── pos/                # Point of Sale
 │   │   └── shared/             # Shared Libraries
 │   └── frontend/
-│       ├── web/                # Main Website (Next.js)
-│       │   └── system/         # System Admin Interface
-│       ├── admin/              # Tenant Admin Interface
+│       ├── web/                # Main Next.js Application
+│       │   └── app/            # App Router (Next.js 13+)
+│       │       ├── [tenant-slug]/     # Dynamic tenant routing
+│       │       ├── tenant/            # Tenant management
+│       │       │   └── [slug]/        # Tenant-specific pages
+│       │       │       └── admin/     # Tenant admin interface
+│       │       └── admin/             # System admin interface
 │       └── ui/                 # Shared UI Components
-├── pkg/                        # Go & JS SDKs
+│           └── components/     # Reusable React components
+├── pkg/                        # Shared Go packages & utilities
+│   ├── auth/                   # JWT authentication utilities
+│   ├── database/               # Database connection utilities
+│   └── utils/                  # Helper functions
 ├── infra/                      # Infrastructure Code
-│   ├── db/                     # Database migrations
+│   ├── db/                     # Database migrations & schemas
 │   ├── k8s/                    # Kubernetes manifests
-│   ├── docker/                 # Docker configurations
+│   ├── docker/                 # Docker configurations & Traefik
 │   └── ci-cd/                  # CI/CD pipelines
-└── docs/                       # Documentation
+├── docs/                       # Documentation
+│   ├── architecture.md         # System architecture (English)
+│   ├── thiet-ke-kien-truc-du-an.md    # Architecture design (Vietnamese)
+│   ├── thiet-ke-kien-truc-database.md # Database design
+│   ├── thiet-ke-tong-quan-du-an.md    # Project overview
+│   └── thiet-ke-ux-ui.md      # UX/UI design guidelines
+└── mock/                       # Static HTML mockups & prototypes
+    ├── index.html             # Landing page mockup
+    ├── system-admin-dashboard.html    # System admin UI mockup
+    ├── tenant-admin-dashboard.html    # Tenant admin UI mockup
+    ├── customer-crm-dashboard.html    # CRM module mockup
+    └── customer-lms-portal.html       # LMS module mockup
 ```
 
 ## Service Architecture
