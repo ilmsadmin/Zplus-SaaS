@@ -1,6 +1,18 @@
 -- System level tables
 CREATE SCHEMA IF NOT EXISTS system;
 
+-- System users table (for system administrators)
+CREATE TABLE system.system_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL, -- super_admin, admin, support
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Tenants table
 CREATE TABLE system.tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -63,3 +75,7 @@ INSERT INTO system.plans (name, description, price, max_users, max_storage) VALU
 ('Basic', 'Basic plan with essential features', 29.99, 10, 1073741824),  -- 1GB
 ('Pro', 'Professional plan with advanced features', 99.99, 50, 5368709120), -- 5GB
 ('Enterprise', 'Enterprise plan with unlimited features', 299.99, -1, -1); -- Unlimited
+
+-- Insert default system administrator
+INSERT INTO system.system_users (email, password_hash, name, role) VALUES
+('admin@zplus.local', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Administrator', 'super_admin');
