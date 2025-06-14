@@ -1,0 +1,186 @@
+# GraphQL Mutation definitions for Zplus SaaS
+# Multi-tenant mutations with proper authorization
+
+type Mutation {
+  # Authentication mutations
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+  refreshToken(token: String!): AuthPayload!
+  
+  # User management
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+  assignRole(userId: ID!, roleId: ID!): User!
+  removeRole(userId: ID!, roleId: ID!): User!
+  
+  # Role management
+  createRole(input: CreateRoleInput!): Role!
+  updateRole(id: ID!, input: UpdateRoleInput!): Role!
+  deleteRole(id: ID!): Boolean!
+  assignPermission(roleId: ID!, permissionId: ID!): Role!
+  removePermission(roleId: ID!, permissionId: ID!): Role!
+  
+  # CRM mutations
+  createCustomer(input: CreateCustomerInput!): Customer!
+  updateCustomer(id: ID!, input: UpdateCustomerInput!): Customer!
+  deleteCustomer(id: ID!): Boolean!
+  
+  # HRM mutations
+  createEmployee(input: CreateEmployeeInput!): Employee!
+  updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
+  deleteEmployee(id: ID!): Boolean!
+  
+  createDepartment(input: CreateDepartmentInput!): Department!
+  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+  deleteDepartment(id: ID!): Boolean!
+  
+  # POS/Inventory mutations
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: ID!, input: UpdateProductInput!): Product!
+  deleteProduct(id: ID!): Boolean!
+  updateProductStock(id: ID!, quantity: Int!): Product!
+  
+  createProductCategory(input: CreateProductCategoryInput!): ProductCategory!
+  updateProductCategory(id: ID!, input: UpdateProductCategoryInput!): ProductCategory!
+  deleteProductCategory(id: ID!): Boolean!
+}
+
+# Authentication
+type AuthPayload {
+  token: String!
+  refreshToken: String!
+  user: User!
+  expiresIn: Int!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+  tenantSlug: String!
+}
+
+# User inputs
+input CreateUserInput {
+  email: String!
+  firstName: String!
+  lastName: String!
+  password: String!
+  roleIds: [ID!]
+}
+
+input UpdateUserInput {
+  email: String
+  firstName: String
+  lastName: String
+  avatar: String
+  status: UserStatus
+}
+
+# Role inputs
+input CreateRoleInput {
+  name: String!
+  description: String
+  permissionIds: [ID!]
+}
+
+input UpdateRoleInput {
+  name: String
+  description: String
+}
+
+# Customer inputs
+input CreateCustomerInput {
+  name: String!
+  email: String
+  phone: String
+  address: String
+  company: String
+  tags: [String!]
+  notes: String
+}
+
+input UpdateCustomerInput {
+  name: String
+  email: String
+  phone: String
+  address: String
+  company: String
+  status: CustomerStatus
+  tags: [String!]
+  notes: String
+}
+
+# Employee inputs
+input CreateEmployeeInput {
+  employeeId: String!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  departmentId: ID
+  position: String!
+  salary: Float
+  hireDate: DateTime!
+  managerId: ID
+}
+
+input UpdateEmployeeInput {
+  firstName: String
+  lastName: String
+  email: String
+  phone: String
+  departmentId: ID
+  position: String
+  salary: Float
+  status: EmployeeStatus
+  managerId: ID
+}
+
+# Department inputs
+input CreateDepartmentInput {
+  name: String!
+  description: String
+  managerId: ID
+}
+
+input UpdateDepartmentInput {
+  name: String
+  description: String
+  managerId: ID
+}
+
+# Product inputs
+input CreateProductInput {
+  sku: String!
+  name: String!
+  description: String
+  price: Float!
+  cost: Float
+  stock: Int!
+  categoryId: ID
+  images: [String!]
+}
+
+input UpdateProductInput {
+  name: String
+  description: String
+  price: Float
+  cost: Float
+  categoryId: ID
+  images: [String!]
+  status: ProductStatus
+}
+
+# Product Category inputs
+input CreateProductCategoryInput {
+  name: String!
+  description: String
+  parentId: ID
+}
+
+input UpdateProductCategoryInput {
+  name: String
+  description: String
+  parentId: ID
+}

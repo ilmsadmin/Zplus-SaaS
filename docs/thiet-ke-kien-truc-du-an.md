@@ -98,9 +98,186 @@ Zplus SaaS được xây dựng trên kiến trúc **3-tier Multi-tenant** với
 - Yêu cầu event sourcing patterns
 - Audit trail và compliance requirements
 
-## 3. Luồng Request
+## 3. Chiến lược API: GraphQL-First
 
-### 3.1 Request Flow Diagram
+### 3.1 Tại sao ưu tiên GraphQL?
+
+Zplus SaaS áp dụng chiến lược **GraphQL-first** làm giao thức API chính, kết hợp với REST API cho các trường hợp cụ thể.
+
+#### Lợi ích của GraphQL-First:
+
+1. **Hiệu quả Frontend**: Một request duy nhất cho nhiều nguồn dữ liệu
+2. **Type Safety**: Hệ thống type mạnh mẽ với auto-generated TypeScript
+3. **Khả năng Real-time**: Hỗ trợ subscription tích hợp sẵn
+4. **Multi-tenant Aware**: Schema-level tenant isolation
+5. **Developer Experience**: GraphQL Playground và introspection
+
+#### Thiết kế Schema GraphQL
+
+```graphql
+# Interface cơ bản cho multi-tenant
+interface TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Ví dụ: Entity khách hàng
+type Customer implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  name: String!
+  email: String
+  status: CustomerStatus!
+  company: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+```
+
+#### Multi-tenant Context trong GraphQL
+
+```go
+// Request context với tenant isolation
+type RequestContext struct {
+    Tenant *TenantContext `json:"tenant"`
+    User   *UserContext   `json:"user"`
+}
+
+// Authorization trong resolver
+func (r *customerResolver) Customers(ctx context.Context) ([]*Customer, error) {
+    reqCtx := getRequestContext(ctx)
+    
+    // Validate tenant access
+    if err := r.requireTenantAuth(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    // Query scoped to tenant
+    return r.customerService.GetByTenant(reqCtx.Tenant.ID)
+}
+```
+
+### 3.2 REST API Compatibility
+
+REST endpoints được cung cấp cho:
+
+1. **Simple CRUD operations**: Các thao tác đơn giản
+2. **Third-party integrations**: Tích hợp bên thứ 3
+3. **Health checks**: Monitoring và health check
+4. **File uploads**: Upload file và binary data
+
+#### Mẫu thiết kế REST API
+
+```http
+# REST endpoints với tenant scope
+GET    /api/v1/customers
+POST   /api/v1/customers
+GET    /api/v1/customers/{id}
+PUT    /api/v1/customers/{id}
+DELETE /api/v1/customers/{id}
+
+# Headers bắt buộc
+Authorization: Bearer {jwt_token}
+X-Tenant-ID: {tenant_slug}
+```
+
+### 3.3 Frontend-Backend Integration
+
+#### GraphQL Code Generation
+
+```typescript
+// Auto-generated TypeScript types
+export interface Customer {
+  id: string;
+  tenantId: string;
+  name: string;
+  email?: string;
+  status: CustomerStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Auto-generated React hooks
+export const useGetCustomersQuery = (variables?: GetCustomersQueryVariables) => {
+  return useQuery<GetCustomersQuery, GetCustomersQueryVariables>(
+    GetCustomersDocument,
+    variables
+  );
+};
+```
+
+#### Real-time Updates với Subscriptions
+
+```typescript
+// Frontend subscription cho live updates
+const { data, loading } = useSubscription(NOTIFICATIONS_SUBSCRIPTION, {
+  variables: { tenantId: currentTenant.id }
+});
+
+// GraphQL subscription
+subscription NotificationUpdates($tenantId: TenantID!) {
+  notifications(tenantId: $tenantId) {
+    id
+    type
+    title
+    message
+    createdAt
+  }
+}
+```
+
+### 3.4 Authentication & Authorization
+
+#### Cấu trúc JWT Token
+
+```json
+{
+  "sub": "user_id",
+  "tenant_id": "tenant_slug", 
+  "email": "user@example.com",
+  "roles": ["admin", "user"],
+  "permissions": [
+    "customers:read",
+    "customers:write",
+    "products:read"
+  ],
+  "exp": 1640995200,
+  "iat": 1640908800
+}
+```
+
+#### Authorization Patterns trong GraphQL
+
+```go
+// Resolver-level authorization
+func (r *mutationResolver) CreateCustomer(ctx context.Context, input CreateCustomerInput) (*Customer, error) {
+    reqCtx := getRequestContext(ctx)
+    
+    // Check specific permission
+    if err := r.requirePermission(reqCtx, "customers", "write"); err != nil {
+        return nil, err
+    }
+    
+    // Business logic...
+}
+
+// Field-level authorization
+func (r *customerResolver) SensitiveData(ctx context.Context, obj *Customer) (*string, error) {
+    reqCtx := getRequestContext(ctx)
+    
+    if !reqCtx.User.HasRole("admin") {
+        return nil, nil // Ẩn field cho non-admin
+    }
+    
+    return &obj.SensitiveData, nil
+}
+```
+
+## 4. Luồng Request
+
+### 4.1 Request Flow Diagram
 
 ```
 [Client] → [Traefik] → [GraphQL Gateway] → [Microservice] → [Database]
@@ -113,9 +290,9 @@ Zplus SaaS được xây dựng trên kiến trúc **3-tier Multi-tenant** với
    │                       - Tenant ID
 ```
 
-### 3.2 Luồng xử lý chi tiết
+### 4.2 Luồng xử lý chi tiết
 
-1. **Client Request**: `student-zin100.myapp.com/api/graphql`
+1. **Client Request**: `student-zin100.myapp.com/graphql`
 
 2. **Traefik Processing**:
    - **SSL Termination**: Xử lý HTTPS certificates
@@ -129,14 +306,16 @@ Zplus SaaS được xây dựng trên kiến trúc **3-tier Multi-tenant** với
    - Middleware authentication (JWT)
    - Middleware authorization (RBAC)
    - Middleware tenant validation
-   - Middleware rate limiting
+   - GraphQL query parsing và validation
+   - Context injection cho resolvers
    - Route đến microservice tương ứng
 
-4. **Microservice Processing**:
-   - Lấy tenant context: `GetTenantDB(c)`  
-   - Xử lý business logic
+4. **GraphQL Resolver Processing**:
+   - Lấy tenant context: `getRequestContext(ctx)`  
+   - Validate permissions cho từng field
+   - Xử lý business logic với dataloader pattern
    - Truy cập database schema tương ứng
-   - Trả về kết quả
+   - Trả về typed data
 
 ## 4. Database Architecture
 

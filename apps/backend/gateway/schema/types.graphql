@@ -1,0 +1,221 @@
+# Zplus SaaS GraphQL Schema - Core Types
+# Multi-tenant GraphQL API with comprehensive type system
+
+scalar TenantID
+scalar DateTime
+scalar JSON
+
+"""
+Base interface for all tenant-scoped entities
+"""
+interface TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""
+System-level tenant information
+"""
+type Tenant {
+  id: ID!
+  slug: String!
+  name: String!
+  domain: String
+  plan: SubscriptionPlan!
+  status: TenantStatus!
+  settings: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+  EXPIRED
+}
+
+"""
+User entity with multi-level RBAC
+"""
+type User implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  avatar: String
+  roles: [Role!]!
+  status: UserStatus!
+  lastLoginAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+"""
+Role-based access control
+"""
+type Role implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  name: String!
+  description: String
+  permissions: [Permission!]!
+  users: [User!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""
+Permission system for granular access control
+"""
+type Permission {
+  id: ID!
+  name: String!
+  resource: String!
+  action: String!
+  description: String
+}
+
+"""
+Subscription plan management
+"""
+type SubscriptionPlan {
+  id: ID!
+  name: String!
+  price: Float!
+  features: [PlanFeature!]!
+  maxUsers: Int
+  storage: Int # GB
+  modules: [ModuleType!]!
+}
+
+type PlanFeature {
+  id: ID!
+  name: String!
+  description: String
+  enabled: Boolean!
+}
+
+enum ModuleType {
+  CRM
+  HRM
+  POS
+  LMS
+  FINANCE
+  INVENTORY
+}
+
+"""
+Customer entity for CRM module
+"""
+type Customer implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  name: String!
+  email: String
+  phone: String
+  address: String
+  company: String
+  status: CustomerStatus!
+  tags: [String!]!
+  notes: String
+  createdBy: User!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum CustomerStatus {
+  LEAD
+  PROSPECT
+  ACTIVE
+  INACTIVE
+  CHURNED
+}
+
+"""
+Employee entity for HRM module
+"""
+type Employee implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  employeeId: String!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  department: Department
+  position: String!
+  salary: Float
+  hireDate: DateTime!
+  status: EmployeeStatus!
+  manager: Employee
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+  RESIGNED
+}
+
+"""
+Department for organization structure
+"""
+type Department implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  name: String!
+  description: String
+  manager: Employee
+  employees: [Employee!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""
+Product entity for POS/Inventory
+"""
+type Product implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  sku: String!
+  name: String!
+  description: String
+  price: Float!
+  cost: Float
+  stock: Int!
+  category: ProductCategory
+  images: [String!]!
+  status: ProductStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+  DISCONTINUED
+}
+
+type ProductCategory implements TenantEntity {
+  id: ID!
+  tenantId: TenantID!
+  name: String!
+  description: String
+  parent: ProductCategory
+  products: [Product!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
