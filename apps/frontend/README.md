@@ -16,19 +16,6 @@ This directory contains all frontend applications for the Zplus SaaS platform.
   - `tenant.domain.com` → `/tenant/[slug]`
   - `tenant.domain.com/admin` → `/tenant/[slug]/admin`
 
-### Legacy Applications (Deprecated)
-#### System Admin Interface (Port: 3001)
-- ⚠️ **Deprecated**: Use `/admin` route in main web app instead
-- Global system administration
-- Tenant management
-- System-wide settings and monitoring
-
-#### Tenant Admin Interface (Port: 3002)
-- ⚠️ **Deprecated**: Use `/tenant/[slug]/admin` route in main web app instead
-- Organization-specific administration
-- User management within tenant
-- Module configuration per tenant
-
 ### Shared UI Components
 - Reusable React components
 - Design system implementation
@@ -41,19 +28,6 @@ This directory contains all frontend applications for the Zplus SaaS platform.
 cd apps/frontend/web
 npm install
 npm run dev  # Runs on port 3000
-```
-
-### Legacy Applications (Deprecated)
-```bash
-# System admin (deprecated - use /admin instead)
-cd apps/frontend/web/system  
-npm install
-npm run dev  # Port 3001
-
-# Tenant admin (deprecated - use /tenant/[slug]/admin instead)
-cd apps/frontend/admin
-npm install
-npm run dev  # Port 3002
 ```
 
 ## Architecture
