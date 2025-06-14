@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: zplus-postgres
+    environment:
+      POSTGRES_DB: zplus_saas
+      POSTGRES_USER: zplus_user
+      POSTGRES_PASSWORD: zplus_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - zplus-network
+
+  mongodb:
+    image: mongo:7-jammy
+    container_name: zplus-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: zplus_user
+      MONGO_INITDB_ROOT_PASSWORD: zplus_password
+      MONGO_INITDB_DATABASE: zplus_saas
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - zplus-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: zplus-redis
+    command: redis-server --appendonly yes --requirepass zplus_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - zplus-network
+
+  # Development services (optional)
+  adminer:
+    image: adminer
+    container_name: zplus-adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - zplus-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+
+networks:
+  zplus-network:
+    driver: bridge
