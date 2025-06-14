@@ -1,111 +1,180 @@
-1. Tổng quan kiến trúc 🚀
-Kiến trúc tổng thể vẫn tuân theo mô hình Microservices trên Kubernetes, nhưng các thành phần được làm rõ hơn:
-Cổng vào (Ingress): Traefik sẽ đóng vai trò là API Gateway, tự động phát hiện các dịch vụ và định tuyến request. Nó sẽ xác định tenant dựa trên subdomain và gắn TenantID vào header.
-Tầng API: Một GraphQL Gateway (viết bằng Go) nhận request từ Traefik, xác thực và điều phối đến các microservice nghiệp vụ.
-Tầng nghiệp vụ: Các microservice được xây dựng bằng Go với framework Fiber cho hiệu năng cao. Logic truy vấn database sẽ được xử lý qua GORM.
-Tầng dữ liệu:
-PostgreSQL: 1 database duy nhất, chứa 1000+ schema (ví dụ: tenant_acme, tenant_globex).
-MongoDB: Mỗi tenant có một database riêng (acme_docs, globex_docs).
-Redis: Dùng chung, phân tách dữ liệu bằng tiền tố (prefix) trên key.
-CI/CD: GitHub Actions sẽ build, test và deploy các container lên Kubernetes.
-2. Chi tiết triển khai với Fiber và GORM
-Đây là phần quan trọng nhất, mô tả cách các công nghệ cụ thể này phối hợp với nhau.
-a. Traefik: Cổng vào thông minh
-Traefik sẽ được cấu hình làm Ingress Controller trong Kubernetes.
-Luồng hoạt động:
-Request đến tenant-acme.myapp.com.
-Traefik (thông qua IngressRoute CRD) bắt được request này.
-Nó sử dụng Middleware để trích xuất acme từ host và tạo một header mới: X-Tenant-ID: acme.
-Request được chuyển tiếp đến dịch vụ graphql-gateway.
-Lợi ích: Logic xác định tenant được xử lý hoàn toàn ở tầng biên, các service bên trong không cần quan tâm đến subdomain.
-b. Microservices với Go Fiber & GORM
-Fiber là một lựa chọn tuyệt vời vì nó cực kỳ nhanh và có API tương tự Express.js, dễ sử dụng. GORM là một ORM mạnh mẽ cho Go.
-Thách thức chính: Làm thế nào để mọi câu lệnh GORM của một request đều thực thi trên đúng schema của tenant đó?
-Giải pháp: Sử dụng một Fiber Middleware kết hợp với một hàm khởi tạo GORM session.
-Fiber Middleware để lấy TenantID: Tạo một middleware được thực thi đầu tiên cho mọi request cần truy cập database.
-// file: middlewares/tenant.go
-func TenantResolver() fiber.Handler {
-    return func(c *fiber.Ctx) error {
-        // Lấy TenantID từ header do Traefik gắn vào
-        tenantID := c.Get("X-Tenant-ID")
-        if tenantID == "" {
-            return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Tenant ID is missing"})
-        }
-
-        // Lưu tenantID vào context của request để các hàm sau có thể dùng
-        c.Locals("tenant_id", tenantID)
-        return c.Next()
-    }
-}
+Kiến trúc nền tảng SaaS đa tenant gồm 3 tầng phân quyền (System → Tenant → Customer), dễ mở rộng ra nhiều module trong tương lai như CRM, POS, LMS...
 
 
-Hàm khởi tạo GORM Session cho Tenant: Tạo một hàm helper để lấy DB session đã được cấu hình đúng search_path.
-// file: database/connection.go
-var DB *gorm.DB // Biến global chứa kết nối gốc
+---
 
-func InitDatabase() {
-    // Khởi tạo kết nối gốc đến PostgreSQL
-    dsn := "host=... user=... password=... dbname=saas_app port=5432 sslmode=disable"
-    DB, _ = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-}
+🏗️ Kiến trúc tổng quan
 
-// Hàm quan trọng nhất!
-func GetTenantDB(c *fiber.Ctx) *gorm.DB {
-    // Lấy tenantID từ context mà middleware đã lưu
-    tenantID, ok := c.Locals("tenant_id").(string)
-    if !ok || tenantID == "" {
-        return nil // Hoặc panic, tùy vào logic của bạn
-    }
-
-    // Tạo một session mới và set search_path cho tenant này
-    // Mọi thao tác trên dbSession này sẽ chỉ áp dụng cho schema của tenant
-    dbSession := DB.Session(&gorm.Session{})
-    dbSession.Exec("SET search_path TO ?", tenantID)
-    return dbSession
-}
++-------------------------+
+|        System          |  <-- Quản trị toàn cục (RBAC, gói dịch vụ, tenant, domain)
++-------------------------+
+            |
+            v
++-------------------------+
+|        Tenant          |  <-- Quản trị trong phạm vi tenant (RBAC, user, module, khách hàng)
++-------------------------+
+            |
+            v
++-------------------------+
+|       Customer         |  <-- Người dùng cuối, sử dụng dịch vụ (CRM, LMS, POS...)
++-------------------------+
 
 
-Sử dụng trong một Handler của Fiber: Bây giờ, trong các hàm xử lý request, bạn chỉ cần gọi GetTenantDB để có được kết nối an toàn.
-// file: handlers/product_handler.go
-func GetProducts(c *fiber.Ctx) error {
-    // Lấy DB session đã được scope cho đúng tenant
-    db := database.GetTenantDB(c)
-    if db == nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not get database session"})
-    }
+---
 
-    var products []models.Product
-    // GORM sẽ tự động chạy câu lệnh "SELECT * FROM products"
-    // trên schema của tenant hiện tại vì đã có `SET search_path`
-    db.Find(&products)
+📦 Tầng 1: System Layer
 
-    return c.Status(fiber.StatusOK).JSON(products)
-}
+Dữ liệu chung toàn hệ thống (đặt trong schema public hoặc riêng schema system).
 
-// Đăng ký route và middleware
-// app.Use(middlewares.TenantResolver())
-// app.Get("/products", handlers.GetProducts)
+Các chức năng:
+
+Quản trị người dùng hệ thống (admin panel).
+
+Quản lý Tenant:
+
+Tên + Mô tả
+
+Subdomain / domain tùy chỉnh
+
+Trạng thái (active, suspended)
 
 
-c. Quản lý Schema Migration với GORM
-Với 1000 tenant, bạn cần một công cụ để tự động cập nhật schema cho tất cả.
-Dịch vụ quản lý Tenant: Tạo một microservice riêng (hoặc một lệnh CLI) cho việc này.
-Logic migration:
-Service này kết nối đến database saas_app.
-Nó truy vấn để lấy danh sách tất cả tenantId đang có.
-Vòng lặp qua từng tenantId:
-Thực thi SET search_path TO ?, tenantId
-Chạy db.AutoMigrate(&models.Product{}, &models.Order{}, ...)
-GORM sẽ tự động so sánh các struct model của bạn với các bảng trong schema của tenant đó và thêm/thay đổi cột nếu cần.
-3. Các thành phần khác và luồng hoạt động
-Next.js (Frontend): Hoạt động như đã mô tả, gửi request đến GraphQL Gateway.
-GraphQL Gateway: Nhận request, gọi middleware TenantResolver để xác định tenant, sau đó điều phối đến các Fiber microservice tương ứng.
-Kafka (Xử lý bất đồng bộ): Khi một Fiber service cần gửi một tác vụ nền, nó sẽ đẩy một message vào Kafka. Message này bắt buộc phải chứa tenantId trong payload để các consumer biết phải thao tác trên schema nào.
-GitHub Actions (CI/CD): Quy trình không đổi: push code -> build & test -> build docker image -> push to registry -> kubectl apply.
-4. Thách thức và giải pháp cho 1000 Tenant
-Các thách thức vẫn tương tự, nhưng giải pháp có thể được tinh chỉnh:
-Quản lý kết nối Database: Rất quan trọng khi dùng GORM. Đảm bảo bạn không mở kết nối mới cho mỗi request. Sử dụng connection pool có sẵn của GORM và đặt PgBouncer ở giữa để quản lý hàng nghìn kết nối từ các pod Kubernetes.
-Migration Schema hàng loạt: Kịch bản migration bằng GORM AutoMigrate như mô tả ở trên là giải pháp trực tiếp. Cần có cơ chế ghi log và xử lý lỗi cẩn thận.
-Giám sát (Monitoring): Sử dụng một thư viện Prometheus client cho Go. Trong middleware TenantResolver, sau khi lấy được tenantID, hãy tăng một bộ đếm (counter) với label tenant_id. Ví dụ: http_requests_total{tenant="acme", method="GET", path="/products"}.
-Backup và Restore: Kịch bản pg_dump --schema=<tenant_id> vẫn là giải pháp hiệu quả nhất để sao lưu cho từng tenant.
-Bằng cách áp dụng các mẫu thiết kế này, bạn có thể tận dụng sức mạnh của Fiber và GORM để xây dựng một hệ thống SaaS multi-tenant hiệu năng cao, an toàn và dễ bảo trì trên nền tảng Kubernetes.
+RBAC cho admin system (nếu có nhiều người vận hành).
+
+Quản lý Plan/Subscription:
+
+Plan: tên, mô tả, giá, giới hạn (user, dung lượng...)
+
+Subscription: tenant nào đang dùng plan nào, thời hạn
+
+
+Quản lý các Modules có thể kích hoạt cho từng tenant:
+
+CRM, POS, LMS, HRM, Checkin...
+
+Module có thể bao gồm tên, mô tả, cấu hình bật/tắt
+
+
+(Tùy chọn) Quản lý thanh toán (Stripe/Billing API...)
+
+
+Tables gợi ý:
+
+Table	Description
+
+system_users	Admin hệ thống
+tenants	Danh sách tenant (id, name, domain)
+plans	Các gói cước
+subscriptions	Gói đang dùng cho từng tenant
+modules	Các module được hỗ trợ
+tenant_modules	Các module được bật cho tenant
+
+
+
+---
+
+🏢 Tầng 2: Tenant Layer
+
+Dữ liệu riêng trong từng schema PostgreSQL: tenant_acme, tenant_zin100...
+
+Chức năng:
+
+RBAC cho tenant: user, role, permission.
+
+Quản lý người dùng nội bộ của tenant (admin, nhân viên...).
+
+Quản lý khách hàng cuối (customers) tùy theo module đang dùng.
+
+Theo dõi usage, cấu hình tenant.
+
+Kích hoạt module nào sẽ hiển thị/ẩn tính năng tương ứng.
+
+Cấu hình tích hợp (zalo OA, email, sms...) tùy tenant.
+
+
+Tables cơ bản:
+
+Table	Description
+
+users	Người dùng nội bộ của tenant
+roles	Vai trò
+permissions	Quyền
+user_roles	Gán người dùng vào vai trò
+customers	Khách hàng cuối
+modules_config	Bật/tắt các tính năng trong tenant
+
+
+> Bạn có thể định nghĩa 1 BaseModule interface để các module mới thêm dễ dàng (CRM, POS,...).
+
+
+
+
+---
+
+👤 Tầng 3: Customer Layer
+
+Người dùng cuối sử dụng dịch vụ, ví dụ:
+
+Học viên (LMS)
+
+Khách hàng CRM
+
+Khách mua hàng (POS)
+
+Nhân viên (HRM)
+
+
+> Tùy vào module được bật mà dữ liệu và flow của tầng này sẽ khác.
+
+
+
+Ví dụ với LMS: | Table          | Description                      | |----------------|----------------------------------| | students     | Học viên                         | | courses      | Khóa học                         | | enrollments  | Ghi danh                         | | lessons      | Nội dung                         | | quizzes      | Bài kiểm tra                     |
+
+
+---
+
+🔗 Module System - Gợi ý mở rộng
+
+Hệ thống cần hỗ trợ module-based feature toggle:
+
+Module registry: khai báo module
+
+Tenant-specific config: schema tenant_zin100.modules_config
+
+API Gateway GraphQL điều phối route theo module đang bật
+
+Middleware kiểm tra module permission theo X-Tenant-ID
+
+
+
+---
+
+🧠 Kiến trúc kỹ thuật tóm tắt
+
+Layer	Scope	Database Schema	Auth	Tool/Libs
+
+System	Global	system / public	JWT + RBAC (admin)	Go + Fiber + GORM
+Tenant	Per-tenant (isolated)	tenant_xyz	JWT + RBAC (tenant)	Fiber + GORM + Redis
+Customer	End-user (module-specific)	Depends on module	Session/JWT (lightweight)	Fiber/module-specific logic
+
+
+
+---
+
+🚦 Luồng request điển hình
+
+1. student-zin100.myapp.com/api/graphql
+
+
+2. Traefik xác định subdomain: zin100 → Header: X-Tenant-ID: zin100
+
+
+3. GraphQL Gateway:
+
+Gọi middleware check tenant + module + RBAC
+
+Route đến microservice Fiber tương ứng
+
+
+
+4. Microservice dùng GetTenantDB(c) để truy cập schema tương ứng.
