@@ -1,0 +1,176 @@
+# GraphQL Query definitions for Zplus SaaS
+# Multi-tenant queries with proper authorization
+
+type Query {
+  # System-level queries (admin only)
+  systemInfo: SystemInfo!
+  tenants(filter: TenantFilter, pagination: Pagination): TenantConnection!
+  tenant(id: ID!): Tenant
+  
+  # Tenant-scoped queries (require tenant context)
+  me: User
+  users(filter: UserFilter, pagination: Pagination): UserConnection!
+  user(id: ID!): User
+  
+  roles(filter: RoleFilter, pagination: Pagination): RoleConnection!
+  role(id: ID!): Role
+  
+  permissions: [Permission!]!
+  
+  # CRM queries
+  customers(filter: CustomerFilter, pagination: Pagination): CustomerConnection!
+  customer(id: ID!): Customer
+  
+  # HRM queries  
+  employees(filter: EmployeeFilter, pagination: Pagination): EmployeeConnection!
+  employee(id: ID!): Employee
+  
+  departments: [Department!]!
+  department(id: ID!): Department
+  
+  # POS/Inventory queries
+  products(filter: ProductFilter, pagination: Pagination): ProductConnection!
+  product(id: ID!): Product
+  
+  productCategories: [ProductCategory!]!
+  productCategory(id: ID!): ProductCategory
+}
+
+# System information
+type SystemInfo {
+  version: String!
+  environment: String!
+  tenantCount: Int!
+  uptime: String!
+}
+
+# Connection types for pagination
+type TenantConnection {
+  edges: [TenantEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type TenantEdge {
+  node: Tenant!
+  cursor: String!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserEdge {
+  node: User!
+  cursor: String!
+}
+
+type RoleConnection {
+  edges: [RoleEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type RoleEdge {
+  node: Role!
+  cursor: String!
+}
+
+type CustomerConnection {
+  edges: [CustomerEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerEdge {
+  node: Customer!
+  cursor: String!
+}
+
+type EmployeeConnection {
+  edges: [EmployeeEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type EmployeeEdge {
+  node: Employee!
+  cursor: String!
+}
+
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductEdge {
+  node: Product!
+  cursor: String!
+}
+
+# Pagination info
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Filter types
+input TenantFilter {
+  status: TenantStatus
+  plan: String
+  search: String
+}
+
+input UserFilter {
+  status: UserStatus
+  role: String
+  search: String
+}
+
+input RoleFilter {
+  search: String
+}
+
+input CustomerFilter {
+  status: CustomerStatus
+  tags: [String!]
+  search: String
+  dateRange: DateRangeFilter
+}
+
+input EmployeeFilter {
+  status: EmployeeStatus
+  department: ID
+  position: String
+  search: String
+}
+
+input ProductFilter {
+  status: ProductStatus
+  category: ID
+  priceRange: FloatRangeFilter
+  search: String
+}
+
+input DateRangeFilter {
+  from: DateTime
+  to: DateTime
+}
+
+input FloatRangeFilter {
+  min: Float
+  max: Float
+}
+
+# Pagination input
+input Pagination {
+  first: Int
+  after: String
+  last: Int
+  before: String
+}

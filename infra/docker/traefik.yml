@@ -1,0 +1,69 @@
+# Traefik Configuration for Zplus SaaS Multi-tenant Architecture
+# This configuration handles subdomain-based tenant routing
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: true  # Only for development
+
+# Entry Points
+entryPoints:
+  web:
+    address: ":80"
+    # Redirect HTTP to HTTPS in production
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+# Providers
+providers:
+  docker:
+    exposedByDefault: false
+    network: zplus-network
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+
+# Certificate Resolvers (for production)
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@zplus.com
+      storage: /letsencrypt/acme.json
+      tlsChallenge: {}
+
+# Logging
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  fields:
+    defaultMode: keep
+    names:
+      RequestHost: keep
+      RequestMethod: keep
+      RequestPath: keep
+      RequestProtocol: keep
+      RequestScheme: keep
+      ResponseCode: keep
+      ResponseSize: keep
+      ClientHost: keep
+    headers:
+      defaultMode: keep
+      names:
+        X-Tenant-ID: keep
+        User-Agent: keep
+        Authorization: drop
+
+# Metrics (for monitoring)
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true

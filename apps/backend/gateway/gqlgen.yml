@@ -1,0 +1,33 @@
+# GraphQL Code Generator configuration for Zplus SaaS
+schema:
+  - "schema/*.graphql"
+
+exec:
+  filename: generated/exec.go
+  package: generated
+
+model:
+  filename: generated/models.go
+  package: generated
+
+resolver:
+  layout: follow-schema
+  dir: resolver
+  package: resolver
+  filename_template: "{name}.resolvers.go"
+
+# Multi-tenant types
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  
+  # Custom scalar for tenant context
+  TenantID:
+    model: github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/types.TenantID
+
+# Skip generating types that we'll define manually  
+skip_mod_tidy: true

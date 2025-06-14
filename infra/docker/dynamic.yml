@@ -1,0 +1,104 @@
+# Dynamic Traefik Configuration for Multi-tenant Routing
+# This file handles tenant-specific routing and middleware
+
+http:
+  # Middlewares for Multi-tenant Support
+  middlewares:
+    # Extract tenant ID from subdomain
+    tenant-headers:
+      headers:
+        customRequestHeaders:
+          # Extract subdomain and set as tenant ID
+          # tenant-slug.zplus.com -> X-Tenant-ID: tenant-slug
+          X-Tenant-ID: "{{ .Request.Host | regexReplaceAll `^([a-z0-9-]+)\\..*` `$1` }}"
+          X-Original-Host: "{{ .Request.Host }}"
+    
+    # Security headers
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+    
+    # Rate limiting per tenant
+    rate-limit:
+      rateLimit:
+        burst: 100
+        period: 1m
+        average: 200
+        sourceCriterion:
+          requestHeaderName: "X-Tenant-ID"
+    
+    # CORS for development
+    cors-dev:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Tenant-ID"
+          - "X-Requested-With"
+        accessControlMaxAge: 86400
+
+  # Services (will be defined by backend services)
+  services:
+    # Placeholder - actual services will be discovered via Docker labels
+    # or defined in backend service configurations
+    dummy:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8080"
+
+  # Routers for different types of traffic
+  routers:
+    # API routes for tenant subdomains
+    api-tenant:
+      rule: "Host(`{subdomain:[a-z0-9-]+}.zplus.com`) && PathPrefix(`/api`)"
+      service: gateway-service  # Will be provided by backend
+      middlewares:
+        - tenant-headers
+        - security-headers
+        - rate-limit
+      tls:
+        certResolver: letsencrypt
+    
+    # Frontend routes for tenant subdomains
+    app-tenant:
+      rule: "Host(`{subdomain:[a-z0-9-]+}.zplus.com`) && !PathPrefix(`/api`)"
+      service: frontend-service  # Will be provided by frontend
+      middlewares:
+        - tenant-headers
+        - security-headers
+      tls:
+        certResolver: letsencrypt
+    
+    # System admin routes
+    admin-system:
+      rule: "Host(`admin.zplus.com`)"
+      service: admin-service  # Will be provided by admin frontend
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: letsencrypt
+    
+    # Traefik dashboard (development only)
+    traefik-dashboard:
+      rule: "Host(`traefik.zplus.com`)"
+      service: api@internal
+      middlewares:
+        - security-headers
+
+# TCP routers (if needed for database connections, etc.)
+tcp:
+  routers: {}

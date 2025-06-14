@@ -1,0 +1,155 @@
+# GraphQL Subscription definitions for Zplus SaaS
+# Real-time updates with tenant isolation
+
+type Subscription {
+  # System-level subscriptions (admin only)
+  tenantUpdated: Tenant!
+  systemMetrics: SystemMetrics!
+  
+  # Tenant-scoped subscriptions
+  userUpdated: User!
+  customerUpdated: Customer!
+  employeeUpdated: Employee!
+  productUpdated: Product!
+  
+  # Real-time notifications
+  notifications: Notification!
+  
+  # Module-specific real-time updates
+  crmActivity: CRMActivity!
+  hrmActivity: HRMActivity!
+  posActivity: POSActivity!
+  
+  # Live data feeds
+  liveStats: LiveStats!
+}
+
+# System metrics for monitoring
+type SystemMetrics {
+  timestamp: DateTime!
+  cpuUsage: Float!
+  memoryUsage: Float!
+  activeConnections: Int!
+  requestsPerSecond: Float!
+  errorRate: Float!
+}
+
+# Notification system
+type Notification {
+  id: ID!
+  tenantId: TenantID!
+  userId: ID!
+  type: NotificationType!
+  title: String!
+  message: String!
+  data: JSON
+  read: Boolean!
+  createdAt: DateTime!
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+  SYSTEM
+}
+
+# Activity tracking for modules
+type CRMActivity {
+  id: ID!
+  tenantId: TenantID!
+  type: CRMActivityType!
+  entity: String!
+  entityId: ID!
+  userId: ID!
+  user: User!
+  description: String!
+  metadata: JSON
+  timestamp: DateTime!
+}
+
+enum CRMActivityType {
+  CUSTOMER_CREATED
+  CUSTOMER_UPDATED
+  CUSTOMER_DELETED
+  CUSTOMER_STATUS_CHANGED
+  NOTE_ADDED
+  TASK_CREATED
+  TASK_COMPLETED
+}
+
+type HRMActivity {
+  id: ID!
+  tenantId: TenantID!
+  type: HRMActivityType!
+  entity: String!
+  entityId: ID!
+  userId: ID!
+  user: User!
+  description: String!
+  metadata: JSON
+  timestamp: DateTime!
+}
+
+enum HRMActivityType {
+  EMPLOYEE_HIRED
+  EMPLOYEE_UPDATED
+  EMPLOYEE_TERMINATED
+  DEPARTMENT_CREATED
+  DEPARTMENT_UPDATED
+  LEAVE_REQUEST
+  PERFORMANCE_REVIEW
+}
+
+type POSActivity {
+  id: ID!
+  tenantId: TenantID!
+  type: POSActivityType!
+  entity: String!
+  entityId: ID!
+  userId: ID!
+  user: User!
+  description: String!
+  metadata: JSON
+  timestamp: DateTime!
+}
+
+enum POSActivityType {
+  PRODUCT_CREATED
+  PRODUCT_UPDATED
+  PRODUCT_DELETED
+  STOCK_UPDATED
+  CATEGORY_CREATED
+  SALE_COMPLETED
+  INVENTORY_ALERT
+}
+
+# Live statistics dashboard
+type LiveStats {
+  tenantId: TenantID!
+  timestamp: DateTime!
+  
+  # General stats
+  totalUsers: Int!
+  activeUsers: Int!
+  
+  # CRM stats
+  totalCustomers: Int!
+  newCustomersToday: Int!
+  leadsCount: Int!
+  
+  # HRM stats
+  totalEmployees: Int!
+  employeesOnLeave: Int!
+  newHiresToday: Int!
+  
+  # POS stats
+  totalProducts: Int!
+  lowStockAlerts: Int!
+  salesToday: Float!
+  
+  # System stats
+  storageUsed: Float! # GB
+  apiRequestsToday: Int!
+}
