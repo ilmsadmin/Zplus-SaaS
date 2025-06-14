@@ -59,9 +59,13 @@ zplus-saas/
 │   │   └── shared/             # Shared libraries
 │   │
 │   ├── frontend/
-│   │   ├── web/
-│   │   │   └── system/         # System admin interface
-│   │   ├── admin/              # Tenant admin interface
+│   │   ├── web/                # Unified Next.js app with multi-tenant routing
+│   │   │   ├── app/
+│   │   │   │   ├── admin/      # System admin (/admin)
+│   │   │   │   ├── [tenant-slug]/ # Alternative tenant routing
+│   │   │   │   └── tenant/[slug]/ # Main tenant routing & admin
+│   │   │   └── middleware.ts   # Subdomain routing logic
+│   │   ├── admin/              # Legacy tenant admin (deprecated)
 │   │   └── ui/                 # Shared UI components
 │
 ├── pkg/                        # Reusable SDKs & libraries
@@ -75,6 +79,20 @@ zplus-saas/
 ├── docs/                       # Project documentation
 └── mock/                       # HTML mockups
 ```
+
+## 🚦 Multi-Tenant Routing Structure
+
+The frontend now supports all required routing patterns:
+
+1. **System Administration**: `/admin` - Global system management
+2. **Tenant Admin**: 
+   - `/tenant/[slug]/admin` - Organization administration  
+   - `tenant-slug.domain.com/admin` - Subdomain-based admin (via middleware)
+3. **System Homepage**: `/` - Main landing page
+4. **Tenant Customer Pages**: 
+   - `/tenant/[slug]` - Tenant service portal
+   - `tenant-slug.domain.com` - Subdomain-based customer portal (via middleware)
+   - `/[tenant-slug]` - Alternative direct routing (redirects to `/tenant/[slug]`)
 
 ## 🎯 Kiến trúc 3 tầng
 
