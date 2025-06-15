@@ -1,4 +1,12 @@
+'use client'
+
+import { useAuth } from '@/hooks/useAuth'
+import UserMenu from '@/components/auth/UserMenu'
+import Link from 'next/link'
+
 export default function Home() {
+  const { isAuthenticated, isLoading } = useAuth()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -18,6 +26,18 @@ export default function Home() {
               <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                 Online
               </div>
+              {!isLoading && (
+                isAuthenticated ? (
+                  <UserMenu />
+                ) : (
+                  <Link
+                    href="/login"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Login
+                  </Link>
+                )
+              )}
             </div>
           </div>
         </div>
