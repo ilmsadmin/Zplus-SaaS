@@ -170,6 +170,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
+	// Extract token ID from the generated token for session creation
+	claims, _ := h.tokenManager.ValidateToken(token)
+	
+	// Create session
+	ipAddress := c.IP()
+	userAgent := c.Get("User-Agent")
+	h.tokenManager.CreateSession(claims.TokenID, user.ID, user.TenantID, user.Email, ipAddress, userAgent)
+
 	// Generate refresh token (same for now, in production use different logic)
 	refreshToken, err := h.tokenManager.GenerateToken(user.ID, user.TenantID, role)
 	if err != nil {
@@ -191,8 +199,37 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 // Logout handles user logout
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	// In a real implementation, you would invalidate the token
-	// For now, we'll just return success
+	// Extract token from Authorization header
+	authHeader := c.Get("Authorization")
+	if authHeader == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
+			Error:   "Authorization header required",
+			Code:    "AUTH_REQUIRED",
+			Message: "Please provide a valid authorization token",
+		})
+	}
+
+	// Validate Bearer token format
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
+			Error:   "Invalid authorization header format",
+			Code:    "INVALID_AUTH_FORMAT",
+			Message: "Authorization header must be in format: Bearer <token>",
+		})
+	}
+
+	token := parts[1]
+
+	// Invalidate the token
+	if err := h.tokenManager.InvalidateToken(token); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{
+			Error:   "Invalid token",
+			Code:    "INVALID_TOKEN",
+			Message: "Token is invalid or already expired",
+		})
+	}
+
 	return c.JSON(fiber.Map{
 		"success": true,
 		"message": "Successfully logged out",
@@ -275,5 +312,14 @@ func (h *AuthHandler) GetUsers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"users": users,
 		"count": len(users),
+	})
+}
+
+// GetSessions returns all active sessions (for admin debugging)
+func (h *AuthHandler) GetSessions(c *fiber.Ctx) error {
+	sessions := h.tokenManager.GetAllSessions()
+	return c.JSON(fiber.Map{
+		"sessions": sessions,
+		"count":    len(sessions),
 	})
 }

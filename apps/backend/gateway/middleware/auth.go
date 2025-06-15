@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/types"
+	"github.com/ilmsadmin/Zplus-SaaS/pkg/auth"
 )
 
 // ContextKey represents the type for context keys
@@ -19,6 +20,9 @@ const (
 	// RequestContextKey is the key for combined request context
 	RequestContextKey ContextKey = "request"
 )
+
+// Global token manager instance (in production, this should be configured properly)
+var tokenManager = auth.NewTokenManager("your-secret-key", "zplus-saas")
 
 // TenantMiddleware extracts tenant information from request and validates it
 func TenantMiddleware() fiber.Handler {
@@ -229,65 +233,73 @@ func validateAndGetTenant(slug string) (*types.TenantContext, error) {
 }
 
 // validateJWTAndGetUser validates JWT token and returns user context
-// In a real application, this would validate JWT signature and query user data
 func validateJWTAndGetUser(token string) (*types.UserContext, error) {
-	// Mock JWT validation - replace with actual JWT validation logic
 	if token == "" {
 		return nil, fmt.Errorf("empty token")
 	}
 	
-	// Mock user data based on token
-	mockUserData := map[string]*types.UserContext{
-		"demo_admin_token": {
-			ID:        "1",
-			TenantID:  "demo",
-			Email:     "admin@demo.zplus.com",
-			FirstName: "Demo",
-			LastName:  "Admin",
-			Roles:     []string{"admin", "user"},
-			Permissions: []string{
-				"users:read",
-				"users:write",
-				"customers:read",
-				"customers:write",
-				"employees:read",
-				"employees:write",
-				"products:read",
-				"products:write",
-			},
-			IsAdmin: false,
-		},
-		"acme_user_token": {
-			ID:        "2",
-			TenantID:  "acme",
-			Email:     "user@acme.com",
-			FirstName: "John",
-			LastName:  "Doe",
-			Roles:     []string{"user"},
-			Permissions: []string{
-				"customers:read",
-				"products:read",
-			},
-			IsAdmin: false,
-		},
-		"system_admin_token": {
-			ID:        "999",
-			TenantID:  "",
-			Email:     "system@zplus.com",
-			FirstName: "System",
-			LastName:  "Admin",
-			Roles:     []string{"system_admin"},
-			Permissions: []string{},
-			IsAdmin: true,
-		},
+	// Validate JWT token using the auth package
+	claims, err := tokenManager.ValidateToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token: %v", err)
 	}
 	
-	user, exists := mockUserData[token]
-	if !exists {
-		return nil, fmt.Errorf("invalid token")
+	// Create user context from JWT claims
+	// In a full implementation, you might query a user service for additional details
+	userCtx := &types.UserContext{
+		ID:       claims.UserID,
+		TenantID: types.TenantID(claims.TenantID),
+		Roles:    []string{claims.Role},
 	}
 	
-	return user, nil
+	// Add mock permissions based on role for demonstration
+	// In production, this would come from a user service or be cached in JWT
+	switch claims.Role {
+	case "system_admin":
+		userCtx.Email = "system@zplus.com"
+		userCtx.FirstName = "System"
+		userCtx.LastName = "Admin"
+		userCtx.IsAdmin = true
+		userCtx.Permissions = []string{
+			"system:manage",
+			"tenants:read",
+			"tenants:write",
+			"users:read",
+			"users:write",
+		}
+	case "tenant_admin":
+		userCtx.Email = "admin@" + claims.TenantID + ".zplus.com"
+		userCtx.FirstName = "Tenant"
+		userCtx.LastName = "Admin"
+		userCtx.IsAdmin = false
+		userCtx.Permissions = []string{
+			"users:read",
+			"users:write",
+			"customers:read",
+			"customers:write",
+			"employees:read",
+			"employees:write",
+			"products:read",
+			"products:write",
+		}
+	case "user":
+		userCtx.Email = "user@" + claims.TenantID + ".zplus.com"
+		userCtx.FirstName = "User"
+		userCtx.LastName = "User"
+		userCtx.IsAdmin = false
+		userCtx.Permissions = []string{
+			"customers:read",
+			"products:read",
+		}
+	default:
+		userCtx.Email = "unknown@" + claims.TenantID + ".zplus.com"
+		userCtx.FirstName = "Unknown"
+		userCtx.LastName = "User"
+		userCtx.IsAdmin = false
+		userCtx.Permissions = []string{}
+	}
+	
+	return userCtx, nil
 }
 
 // GetRequestContext extracts request context from fiber context
