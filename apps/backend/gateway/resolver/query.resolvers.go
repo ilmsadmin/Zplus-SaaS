@@ -7,6 +7,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/generated"
 )
@@ -78,17 +79,162 @@ func (r *queryResolver) User(ctx context.Context, id string) (*generated.User, e
 
 // Roles is the resolver for the roles field.
 func (r *queryResolver) Roles(ctx context.Context, filter *generated.RoleFilter, pagination *generated.Pagination) (*generated.RoleConnection, error) {
-	panic(fmt.Errorf("not implemented: Roles - roles"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to view roles
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock data for demonstration
+	roles := []*generated.Role{
+		{
+			ID:          "1",
+			TenantID:    reqCtx.Tenant.ID,
+			Name:        "system_admin",
+			Description: stringPtr("System Administrator"),
+			Permissions: []*generated.Permission{},
+			Users:       []*generated.User{},
+			CreatedAt:   "2024-01-01T00:00:00Z",
+			UpdatedAt:   "2024-01-01T00:00:00Z",
+		},
+		{
+			ID:          "2",
+			TenantID:    reqCtx.Tenant.ID,
+			Name:        "tenant_admin",
+			Description: stringPtr("Tenant Administrator"),
+			Permissions: []*generated.Permission{},
+			Users:       []*generated.User{},
+			CreatedAt:   "2024-01-01T00:00:00Z",
+			UpdatedAt:   "2024-01-01T00:00:00Z",
+		},
+		{
+			ID:          "3",
+			TenantID:    reqCtx.Tenant.ID,
+			Name:        "manager",
+			Description: stringPtr("Manager"),
+			Permissions: []*generated.Permission{},
+			Users:       []*generated.User{},
+			CreatedAt:   "2024-01-01T00:00:00Z",
+			UpdatedAt:   "2024-01-01T00:00:00Z",
+		},
+		{
+			ID:          "4",
+			TenantID:    reqCtx.Tenant.ID,
+			Name:        "user",
+			Description: stringPtr("User"),
+			Permissions: []*generated.Permission{},
+			Users:       []*generated.User{},
+			CreatedAt:   "2024-01-01T00:00:00Z",
+			UpdatedAt:   "2024-01-01T00:00:00Z",
+		},
+	}
+	
+	// Apply filter if provided
+	filteredRoles := roles
+	if filter != nil && filter.Search != nil {
+		filteredRoles = []*generated.Role{}
+		for _, role := range roles {
+			if contains(role.Name, *filter.Search) || (role.Description != nil && contains(*role.Description, *filter.Search)) {
+				filteredRoles = append(filteredRoles, role)
+			}
+		}
+	}
+	
+	// Create edges
+	edges := make([]*generated.RoleEdge, len(filteredRoles))
+	for i, role := range filteredRoles {
+		edges[i] = &generated.RoleEdge{
+			Node:   role,
+			Cursor: role.ID,
+		}
+	}
+	
+	return &generated.RoleConnection{
+		Edges: edges,
+		PageInfo: &generated.PageInfo{
+			HasNextPage:     false,
+			HasPreviousPage: false,
+			StartCursor:     nil,
+			EndCursor:       nil,
+		},
+		TotalCount: len(filteredRoles),
+	}, nil
 }
 
 // Role is the resolver for the role field.
 func (r *queryResolver) Role(ctx context.Context, id string) (*generated.Role, error) {
-	panic(fmt.Errorf("not implemented: Role - role"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant authentication
+	if err := r.requireTenantAuth(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock data for demonstration
+	roles := map[string]*generated.Role{
+		"1": {
+			ID:          "1",
+			TenantID:    reqCtx.Tenant.ID,
+			Name:        "system_admin",
+			Description: stringPtr("System Administrator"),
+			Permissions: []*generated.Permission{
+				{ID: "1", Name: "system:manage", Resource: "system", Action: "manage", Description: stringPtr("System management")},
+				{ID: "2", Name: "tenants:read", Resource: "tenants", Action: "read", Description: stringPtr("Read tenants")},
+				{ID: "3", Name: "tenants:write", Resource: "tenants", Action: "write", Description: stringPtr("Write tenants")},
+			},
+			Users: []*generated.User{},
+			CreatedAt: "2024-01-01T00:00:00Z",
+			UpdatedAt: "2024-01-01T00:00:00Z",
+		},
+		"2": {
+			ID:          "2",
+			TenantID:    reqCtx.Tenant.ID,
+			Name:        "tenant_admin",
+			Description: stringPtr("Tenant Administrator"),
+			Permissions: []*generated.Permission{
+				{ID: "4", Name: "users:read", Resource: "users", Action: "read", Description: stringPtr("Read users")},
+				{ID: "5", Name: "users:write", Resource: "users", Action: "write", Description: stringPtr("Write users")},
+			},
+			Users: []*generated.User{},
+			CreatedAt: "2024-01-01T00:00:00Z",
+			UpdatedAt: "2024-01-01T00:00:00Z",
+		},
+	}
+	
+	role, exists := roles[id]
+	if !exists {
+		return nil, fmt.Errorf("role with ID %s not found", id)
+	}
+	
+	return role, nil
 }
 
 // Permissions is the resolver for the permissions field.
 func (r *queryResolver) Permissions(ctx context.Context) ([]*generated.Permission, error) {
-	panic(fmt.Errorf("not implemented: Permissions - permissions"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to view permissions
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Return list of available permissions
+	permissions := []*generated.Permission{
+		{ID: "1", Name: "system:manage", Resource: "system", Action: "manage", Description: stringPtr("System management")},
+		{ID: "2", Name: "tenants:read", Resource: "tenants", Action: "read", Description: stringPtr("Read tenants")},
+		{ID: "3", Name: "tenants:write", Resource: "tenants", Action: "write", Description: stringPtr("Write tenants")},
+		{ID: "4", Name: "users:read", Resource: "users", Action: "read", Description: stringPtr("Read users")},
+		{ID: "5", Name: "users:write", Resource: "users", Action: "write", Description: stringPtr("Write users")},
+		{ID: "6", Name: "customers:read", Resource: "customers", Action: "read", Description: stringPtr("Read customers")},
+		{ID: "7", Name: "customers:write", Resource: "customers", Action: "write", Description: stringPtr("Write customers")},
+		{ID: "8", Name: "employees:read", Resource: "employees", Action: "read", Description: stringPtr("Read employees")},
+		{ID: "9", Name: "employees:write", Resource: "employees", Action: "write", Description: stringPtr("Write employees")},
+		{ID: "10", Name: "products:read", Resource: "products", Action: "read", Description: stringPtr("Read products")},
+		{ID: "11", Name: "products:write", Resource: "products", Action: "write", Description: stringPtr("Write products")},
+	}
+	
+	return permissions, nil
 }
 
 // Customers is the resolver for the customers field.
@@ -139,6 +285,15 @@ func (r *queryResolver) ProductCategories(ctx context.Context) ([]*generated.Pro
 // ProductCategory is the resolver for the productCategory field.
 func (r *queryResolver) ProductCategory(ctx context.Context, id string) (*generated.ProductCategory, error) {
 	panic(fmt.Errorf("not implemented: ProductCategory - productCategory"))
+}
+
+// Helper functions for role resolvers
+func stringPtr(s string) *string {
+	return &s
+}
+
+func contains(str, substr string) bool {
+	return strings.Contains(strings.ToLower(str), strings.ToLower(substr))
 }
 
 // Query returns generated.QueryResolver implementation.
