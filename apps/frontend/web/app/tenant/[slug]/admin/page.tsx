@@ -1,3 +1,6 @@
+import { TenantLayout, TenantHeader, TenantMain } from '@/components/layouts/TenantLayout'
+import { Card, StatsCard, Grid } from '@/components/ui'
+
 interface TenantAdminPageProps {
   params: {
     slug: string
@@ -6,67 +9,150 @@ interface TenantAdminPageProps {
 
 export default function TenantAdminDashboard({ params }: TenantAdminPageProps) {
   const { slug } = params
+  const tenantName = slug.charAt(0).toUpperCase() + slug.slice(1) + ' Corporation'
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">{slug} - Admin Dashboard</h1>
-        </div>
-      </header>
-      
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Organization Management - {slug}
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Manage your organization settings, users, and module configurations
-              </p>
-            </div>
-            <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-800">Users</h4>
-                  <p className="text-2xl font-bold text-blue-900">0</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-green-800">Active Modules</h4>
-                  <p className="text-2xl font-bold text-green-900">0</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-yellow-800">Roles</h4>
-                  <p className="text-2xl font-bold text-yellow-900">3</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-purple-800">Settings</h4>
-                  <p className="text-2xl font-bold text-purple-900">0</p>
-                </div>
+    <TenantLayout>
+      <TenantHeader 
+        tenantName={tenantName}
+        tenantSlug={slug}
+        isAdmin={true}
+      />
+      <TenantMain
+        title="Organization Dashboard"
+        subtitle={`Manage your ${tenantName} settings, users, and module configurations`}
+      >
+        {/* Overview Stats */}
+        <Grid cols={4} className="mb-8">
+          <StatsCard
+            title="Active Users"
+            value="24"
+            change="+3 this week"
+            color="blue"
+          />
+          <StatsCard
+            title="Active Modules"
+            value="4"
+            change="CRM, LMS, HRM, POS"
+            color="green"
+          />
+          <StatsCard
+            title="User Roles"
+            value="5"
+            change="Admin, Manager, Employee, Guest, Custom"
+            color="yellow"
+          />
+          <StatsCard
+            title="Integrations"
+            value="2"
+            change="Slack, Google Workspace"
+            color="purple"
+          />
+        </Grid>
+
+        {/* Recent Activity */}
+        <Card className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            <a href={`/tenant/${slug}/admin/activity`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+              View all
+            </a>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
               </div>
-              
-              <div className="mt-8">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50">
-                    <h5 className="font-medium text-gray-900">Manage Users</h5>
-                    <p className="text-sm text-gray-500">Add, edit, or remove users</p>
-                  </button>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50">
-                    <h5 className="font-medium text-gray-900">Configure Modules</h5>
-                    <p className="text-sm text-gray-500">Enable/disable modules</p>
-                  </button>
-                  <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50">
-                    <h5 className="font-medium text-gray-900">Role Management</h5>
-                    <p className="text-sm text-gray-500">Manage roles and permissions</p>
-                  </button>
-                </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">New user "John Smith" added to Marketing team</p>
+                <p className="text-sm text-gray-500">1 hour ago</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">HRM module configuration updated</p>
+                <p className="text-sm text-gray-500">3 hours ago</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Slack integration successfully configured</p>
+                <p className="text-sm text-gray-500">1 day ago</p>
               </div>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </Card>
+
+        {/* Quick Actions */}
+        <Grid cols={3}>
+          <Card>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-5.197A2.5 2.5 0 0021 15c0 .85-.46 1.598-1.145 2H21z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Users</h3>
+              <p className="text-sm text-gray-600 mb-4">Add, edit, or remove users and manage their roles</p>
+              <a 
+                href={`/tenant/${slug}/admin/users`}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Go to Users
+              </a>
+            </div>
+          </Card>
+          
+          <Card>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Module Configuration</h3>
+              <p className="text-sm text-gray-600 mb-4">Configure and customize your active modules</p>
+              <a 
+                href={`/tenant/${slug}/admin/modules`}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+              >
+                Configure Modules
+              </a>
+            </div>
+          </Card>
+          
+          <Card>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Organization Settings</h3>
+              <p className="text-sm text-gray-600 mb-4">Configure tenant settings and preferences</p>
+              <a 
+                href={`/tenant/${slug}/admin/settings`}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+              >
+                Open Settings
+              </a>
+            </div>
+          </Card>
+        </Grid>
+      </TenantMain>
+    </TenantLayout>
   )
 }
