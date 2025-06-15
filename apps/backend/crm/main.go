@@ -2,11 +2,20 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
+
+// getEnv returns environment variable or default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 func main() {
 	app := fiber.New()
@@ -30,5 +39,6 @@ func main() {
 		})
 	})
 
-	log.Fatal(app.Listen(":8084"))
+	log.Printf("CRM service starting on port %s...", getEnv("CRM_PORT", "8004"))
+	log.Fatal(app.Listen(":" + getEnv("CRM_PORT", "8004")))
 }

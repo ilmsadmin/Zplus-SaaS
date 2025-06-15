@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation'
 
 interface TenantSlugPageProps {
-  params: {
+  params: Promise<{
     'tenant-slug': string
-  }
+  }>
 }
 
-export default function TenantSlugPage({ params }: TenantSlugPageProps) {
-  const tenantSlug = params['tenant-slug']
+export default async function TenantSlugPage({ params }: TenantSlugPageProps) {
+  const resolvedParams = await params
+  const tenantSlug = resolvedParams['tenant-slug']
   
   // Redirect to proper tenant route structure
   redirect(`/tenant/${tenantSlug}`)

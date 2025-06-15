@@ -12,7 +12,6 @@ require (
 	github.com/ilmsadmin/Zplus-SaaS/pkg v0.0.0
 	github.com/valyala/fasthttp v1.51.0
 	github.com/vektah/gqlparser/v2 v2.5.27
-	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
 )
 
@@ -45,4 +44,5 @@ require (
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
+	gorm.io/driver/postgres v1.6.0 // indirect
 )

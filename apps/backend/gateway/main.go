@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 	"gorm.io/gorm"
-	
+
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/generated"
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/handlers"
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/middleware"
@@ -22,6 +22,24 @@ import (
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/shared/services"
 	"github.com/ilmsadmin/Zplus-SaaS/pkg/database"
 )
+
+// getEnv returns environment variable or default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvInt returns environment variable as int or default value
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
 
 func main() {
 	// Initialize database connection
@@ -69,7 +87,7 @@ func main() {
 	// Health endpoint for monitoring
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"status": "healthy",
+			"status":    "healthy",
 			"timestamp": "2024-01-01T00:00:00Z",
 		})
 	})
@@ -77,7 +95,7 @@ func main() {
 	// Create GraphQL server with database integration
 	gqlResolver := resolver.NewResolver()
 	gqlResolver.SetDatabase(db)
-	
+
 	gqlServer := handler.NewDefaultServer(
 		generated.NewExecutableSchema(generated.Config{
 			Resolvers: gqlResolver,
@@ -88,17 +106,17 @@ func main() {
 	app.All("/graphql", func(c *fiber.Ctx) error {
 		// Get request context from middleware
 		requestCtx := middleware.GetRequestContext(c)
-		
+
 		// Create GraphQL context with request context
 		ctx := context.WithValue(c.Context(), "request_context", requestCtx)
-		
+
 		// Adapt Fiber to net/http for GraphQL handler
 		fasthttpadaptor.NewFastHTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Set the context with request information
 			r = r.WithContext(ctx)
 			gqlServer.ServeHTTP(w, r)
 		})(c.Context())
-		
+
 		return nil
 	})
 
@@ -113,11 +131,14 @@ func main() {
 	// REST API endpoints for backward compatibility
 	setupRESTRoutes(app, db, gqlResolver)
 
-	log.Printf("🚀 Zplus SaaS Gateway starting on :8080")
-	log.Printf("📊 GraphQL endpoint: http://localhost:8080/graphql")
-	log.Printf("🛝 GraphQL Playground: http://localhost:8080/playground")
-	log.Printf("🔗 REST API: http://localhost:8080/api/v1")
-	log.Fatal(app.Listen(":8080"))
+	// Get port from environment variable
+	port := getEnv("GATEWAY_PORT", "8000")
+
+	log.Printf("🚀 Zplus SaaS Gateway starting on :%s", port)
+	log.Printf("📊 GraphQL endpoint: http://localhost:%s/graphql", port)
+	log.Printf("🛝 GraphQL Playground: http://localhost:%s/playground", port)
+	log.Printf("🔗 REST API: http://localhost:%s/api/v1", port)
+	log.Fatal(app.Listen(":" + port))
 }
 
 // initializeDatabase sets up the database connection
@@ -126,10 +147,10 @@ func initializeDatabase() (*gorm.DB, error) {
 	dbConfig := database.Config{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnvInt("DB_PORT", 5432),
-		Username: getEnv("DB_USER", "postgres"),
-		Password: getEnv("DB_PASSWORD", "password"),
-		Database: getEnv("DB_NAME", "zplus_saas"),
-		SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		Username: getEnv("DB_USERNAME", "zplus_user"),
+		Password: getEnv("DB_PASSWORD", "zplus_password"),
+		Database: getEnv("DB_DATABASE", "zplus_saas"),
+		SSLMode:  getEnv("DB_SSL_MODE", "disable"),
 	}
 
 	db, err := database.Connect(dbConfig)
@@ -144,15 +165,15 @@ func initializeDatabase() (*gorm.DB, error) {
 // setupRESTRoutes configures REST API endpoints for backward compatibility
 func setupRESTRoutes(app *fiber.App, db *gorm.DB, gqlResolver *resolver.Resolver) {
 	api := app.Group("/api/v1")
-	
+
 	// Health check
 	api.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"status": "healthy",
+			"status":      "healthy",
 			"api_version": "1.0",
 		})
 	})
-	
+
 	// User endpoints
 	users := api.Group("/users")
 	userHandler := handlers.NewUserHandler(gqlResolver.GetUserService)
@@ -163,7 +184,7 @@ func setupRESTRoutes(app *fiber.App, db *gorm.DB, gqlResolver *resolver.Resolver
 				"error": "Authentication required",
 			})
 		}
-		
+
 		return c.JSON(fiber.Map{
 			"id":         userCtx.ID,
 			"email":      userCtx.Email,
@@ -180,7 +201,7 @@ func setupRESTRoutes(app *fiber.App, db *gorm.DB, gqlResolver *resolver.Resolver
 	users.Delete("/:id", userHandler.DeleteUser)
 	users.Post("/:id/password", userHandler.ChangePassword)
 	users.Post("/:id/roles", userHandler.AssignRoles)
-	
+
 	// Tenant endpoints (system admin only)
 	tenants := api.Group("/tenants")
 	tenantHandler := handlers.NewTenantHandler(services.NewTenantService(db))
@@ -191,7 +212,7 @@ func setupRESTRoutes(app *fiber.App, db *gorm.DB, gqlResolver *resolver.Resolver
 				"error": "Tenant context not available",
 			})
 		}
-		
+
 		return c.JSON(fiber.Map{
 			"id":       tenantCtx.ID,
 			"slug":     tenantCtx.Slug,
@@ -234,30 +255,13 @@ func setupRESTRoutes(app *fiber.App, db *gorm.DB, gqlResolver *resolver.Resolver
 // errorHandler handles Fiber errors
 func errorHandler(c *fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
-	
+
 	if e, ok := err.(*fiber.Error); ok {
 		code = e.Code
 	}
-	
+
 	return c.Status(code).JSON(fiber.Map{
 		"error": err.Error(),
 		"code":  code,
 	})
-}
-
-// Helper functions for environment variables
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		if intVal, err := strconv.Atoi(value); err == nil {
-			return intVal
-		}
-	}
-	return defaultValue
 }

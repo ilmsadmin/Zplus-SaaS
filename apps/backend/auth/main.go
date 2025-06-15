@@ -2,13 +2,22 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	
+
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/auth/handlers"
 )
+
+// getEnv returns environment variable or default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 func main() {
 	app := fiber.New(fiber.Config{
@@ -49,7 +58,7 @@ func main() {
 	// Health check
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"status": "healthy",
+			"status":    "healthy",
 			"timestamp": c.Context().Time(),
 		})
 	})
@@ -92,6 +101,6 @@ func main() {
 		})
 	})
 
-	log.Printf("Auth service starting on port 8081...")
-	log.Fatal(app.Listen(":8081"))
+	log.Printf("Auth service starting on port 8001...")
+	log.Fatal(app.Listen(":" + getEnv("AUTH_PORT", "8001")))
 }
