@@ -1,7 +1,10 @@
 package resolver
 
 import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/gateway/types"
+	"github.com/ilmsadmin/Zplus-SaaS/apps/backend/shared/services"
 )
 
 // This file will not be regenerated automatically.
@@ -9,17 +12,42 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	// Add any dependencies here like database connections, external services, etc.
-	// db     *gorm.DB
-	// redis  *redis.Client
-	// logger *log.Logger
+	// Database connection
+	db *gorm.DB
+	
+	// Services
+	tenantService      *services.TenantService
+	planService        *services.PlanService
+	subscriptionService *services.SubscriptionService
 }
 
 // NewResolver creates a new resolver instance
 func NewResolver() *Resolver {
 	return &Resolver{
 		// Initialize dependencies here
+		// For now, we'll use nil until we integrate database connection
 	}
+}
+
+// SetDatabase sets the database connection and initializes services
+func (r *Resolver) SetDatabase(db *gorm.DB) {
+	r.db = db
+	r.tenantService = services.NewTenantService(db)
+	r.planService = services.NewPlanService(db)
+	r.subscriptionService = services.NewSubscriptionService(db)
+}
+
+// GetUserService returns a user service for the given tenant
+func (r *Resolver) GetUserService(tenantID string) *services.UserService {
+	if r.db == nil {
+		return nil
+	}
+	// Parse UUID from string
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		return nil
+	}
+	return services.NewUserService(r.db, tenantUUID)
 }
 
 // Helper methods for multi-tenant operations
