@@ -43,37 +43,222 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, err
 
 // AssignRole is the resolver for the assignRole field.
 func (r *mutationResolver) AssignRole(ctx context.Context, userID string, roleID string) (*generated.User, error) {
-	panic(fmt.Errorf("not implemented: AssignRole - assignRole"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to assign roles
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock implementation - return user with assigned role
+	user := &generated.User{
+		ID:        userID,
+		TenantID:  reqCtx.Tenant.ID,
+		Email:     "mock@example.com",
+		FirstName: "Mock",
+		LastName:  "User",
+		Avatar:    nil,
+		Roles: []*generated.Role{
+			{
+				ID:          roleID,
+				TenantID:    reqCtx.Tenant.ID,
+				Name:        "assigned_role",
+				Description: stringPtr("Assigned role"),
+				Permissions: []*generated.Permission{},
+				Users:       []*generated.User{},
+				CreatedAt:   "2024-01-01T00:00:00Z",
+				UpdatedAt:   "2024-01-01T00:00:00Z",
+			},
+		},
+		Status:      "ACTIVE",
+		LastLoginAt: nil,
+		CreatedAt:   "2024-01-01T00:00:00Z",
+		UpdatedAt:   "2024-01-01T00:00:00Z",
+	}
+	
+	return user, nil
 }
 
 // RemoveRole is the resolver for the removeRole field.
 func (r *mutationResolver) RemoveRole(ctx context.Context, userID string, roleID string) (*generated.User, error) {
-	panic(fmt.Errorf("not implemented: RemoveRole - removeRole"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to remove roles
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock implementation - return user without the removed role
+	user := &generated.User{
+		ID:          userID,
+		TenantID:    reqCtx.Tenant.ID,
+		Email:       "mock@example.com",
+		FirstName:   "Mock",
+		LastName:    "User",
+		Avatar:      nil,
+		Roles:       []*generated.Role{}, // Empty after removal
+		Status:      "ACTIVE",
+		LastLoginAt: nil,
+		CreatedAt:   "2024-01-01T00:00:00Z",
+		UpdatedAt:   "2024-01-01T00:00:00Z",
+	}
+	
+	return user, nil
 }
 
 // CreateRole is the resolver for the createRole field.
 func (r *mutationResolver) CreateRole(ctx context.Context, input generated.CreateRoleInput) (*generated.Role, error) {
-	panic(fmt.Errorf("not implemented: CreateRole - createRole"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to create roles
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Validate input
+	if input.Name == "" {
+		return nil, fmt.Errorf("role name is required")
+	}
+	
+	// Create new role (mock implementation)
+	role := &generated.Role{
+		ID:          fmt.Sprintf("role_%d", len(input.Name)+1000), // Simple ID generation
+		TenantID:    reqCtx.Tenant.ID,
+		Name:        input.Name,
+		Description: input.Description,
+		Permissions: []*generated.Permission{}, // Will be populated if permission IDs provided
+		Users:       []*generated.User{},
+		CreatedAt:   "2024-01-01T00:00:00Z",
+		UpdatedAt:   "2024-01-01T00:00:00Z",
+	}
+	
+	// If permission IDs provided, add them to the role (mock implementation)
+	if input.PermissionIds != nil && len(input.PermissionIds) > 0 {
+		for _, permID := range input.PermissionIds {
+			// In real implementation, you would fetch permission from database
+			role.Permissions = append(role.Permissions, &generated.Permission{
+				ID: permID,
+				Name: fmt.Sprintf("permission:%s", permID),
+				Resource: "mock",
+				Action: "read",
+				Description: stringPtr("Mock permission"),
+			})
+		}
+	}
+	
+	return role, nil
 }
 
 // UpdateRole is the resolver for the updateRole field.
 func (r *mutationResolver) UpdateRole(ctx context.Context, id string, input generated.UpdateRoleInput) (*generated.Role, error) {
-	panic(fmt.Errorf("not implemented: UpdateRole - updateRole"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to update roles
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock implementation - in reality you would fetch from database
+	role := &generated.Role{
+		ID:       id,
+		TenantID: reqCtx.Tenant.ID,
+		Name:     "updated_role",
+		Permissions: []*generated.Permission{},
+		Users:       []*generated.User{},
+		CreatedAt:   "2024-01-01T00:00:00Z",
+		UpdatedAt:   "2024-01-01T00:00:00Z",
+	}
+	
+	// Apply updates
+	if input.Name != nil {
+		role.Name = *input.Name
+	}
+	if input.Description != nil {
+		role.Description = input.Description
+	}
+	
+	return role, nil
 }
 
 // DeleteRole is the resolver for the deleteRole field.
 func (r *mutationResolver) DeleteRole(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteRole - deleteRole"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to delete roles
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return false, err
+	}
+	
+	// Check if it's a system role (mock implementation)
+	systemRoles := map[string]bool{
+		"1": true, // system_admin
+		"2": true, // tenant_admin
+		"3": true, // manager
+		"4": true, // user
+	}
+	
+	if systemRoles[id] {
+		return false, fmt.Errorf("cannot delete system role")
+	}
+	
+	// In real implementation, you would delete from database
+	return true, nil
 }
 
 // AssignPermission is the resolver for the assignPermission field.
 func (r *mutationResolver) AssignPermission(ctx context.Context, roleID string, permissionID string) (*generated.Role, error) {
-	panic(fmt.Errorf("not implemented: AssignPermission - assignPermission"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to assign permissions
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock implementation - fetch role and add permission
+	role := &generated.Role{
+		ID:       roleID,
+		TenantID: reqCtx.Tenant.ID,
+		Name:     "mock_role",
+		Description: stringPtr("Mock role"),
+		Permissions: []*generated.Permission{
+			{
+				ID: permissionID,
+				Name: fmt.Sprintf("permission:%s", permissionID),
+				Resource: "mock",
+				Action: "read",
+				Description: stringPtr("Assigned permission"),
+			},
+		},
+		Users:     []*generated.User{},
+		CreatedAt: "2024-01-01T00:00:00Z",
+		UpdatedAt: "2024-01-01T00:00:00Z",
+	}
+	
+	return role, nil
 }
 
 // RemovePermission is the resolver for the removePermission field.
 func (r *mutationResolver) RemovePermission(ctx context.Context, roleID string, permissionID string) (*generated.Role, error) {
-	panic(fmt.Errorf("not implemented: RemovePermission - removePermission"))
+	reqCtx := getRequestContext(ctx)
+	
+	// Require tenant admin permission to remove permissions
+	if err := r.requireTenantAdmin(reqCtx); err != nil {
+		return nil, err
+	}
+	
+	// Mock implementation - return role without the removed permission
+	role := &generated.Role{
+		ID:          roleID,
+		TenantID:    reqCtx.Tenant.ID,
+		Name:        "mock_role",
+		Description: stringPtr("Mock role"),
+		Permissions: []*generated.Permission{}, // Empty after removal
+		Users:       []*generated.User{},
+		CreatedAt:   "2024-01-01T00:00:00Z",
+		UpdatedAt:   "2024-01-01T00:00:00Z",
+	}
+	
+	return role, nil
 }
 
 // CreateCustomer is the resolver for the createCustomer field.
@@ -155,6 +340,11 @@ func (r *mutationResolver) UpdateProductCategory(ctx context.Context, id string,
 func (r *mutationResolver) DeleteProductCategory(ctx context.Context, id string) (bool, error) {
 	panic(fmt.Errorf("not implemented: DeleteProductCategory - deleteProductCategory"))
 }
+
+// Helper function for mutation resolvers
+// func stringPtr(s string) *string {
+// 	return &s
+// }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }

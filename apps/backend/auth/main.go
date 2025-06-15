@@ -34,6 +34,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler()
+	roleHandler := handlers.NewRoleHandler()
 
 	// Routes
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -63,6 +64,25 @@ func main() {
 
 	// Development endpoint to see active sessions
 	app.Get("/sessions", authHandler.GetSessions)
+
+	// Role management endpoints
+	app.Get("/roles", roleHandler.GetRoles)
+	app.Get("/roles/:id", roleHandler.GetRole)
+	app.Post("/roles", roleHandler.CreateRole)
+	app.Put("/roles/:id", roleHandler.UpdateRole)
+	app.Delete("/roles/:id", roleHandler.DeleteRole)
+
+	// Permission management endpoints
+	app.Get("/permissions", roleHandler.GetPermissions)
+	app.Post("/permissions", roleHandler.CreatePermission)
+
+	// Role-Permission assignment endpoints
+	app.Get("/roles/:id/permissions", roleHandler.GetRolePermissions)
+	app.Post("/roles/permissions", roleHandler.AssignPermissionToRole)
+
+	// User-Role assignment endpoints
+	app.Get("/users/:id/roles", roleHandler.GetUserRoles)
+	app.Post("/users/roles", roleHandler.AssignRoleToUser)
 
 	// Register endpoint (placeholder for future implementation)
 	app.Post("/register", func(c *fiber.Ctx) error {
