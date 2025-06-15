@@ -61,6 +61,9 @@ func main() {
 	// Development endpoint to see mock users
 	app.Get("/users", authHandler.GetUsers)
 
+	// Development endpoint to see active sessions
+	app.Get("/sessions", authHandler.GetSessions)
+
 	// Register endpoint (placeholder for future implementation)
 	app.Post("/register", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{

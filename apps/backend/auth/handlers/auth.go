@@ -170,6 +170,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
+	// Extract token ID from the generated token for session creation
+	claims, _ := h.tokenManager.ValidateToken(token)
+	
+	// Create session
+	ipAddress := c.IP()
+	userAgent := c.Get("User-Agent")
+	h.tokenManager.CreateSession(claims.TokenID, user.ID, user.TenantID, user.Email, ipAddress, userAgent)
+
 	// Generate refresh token (same for now, in production use different logic)
 	refreshToken, err := h.tokenManager.GenerateToken(user.ID, user.TenantID, role)
 	if err != nil {
@@ -304,5 +312,14 @@ func (h *AuthHandler) GetUsers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"users": users,
 		"count": len(users),
+	})
+}
+
+// GetSessions returns all active sessions (for admin debugging)
+func (h *AuthHandler) GetSessions(c *fiber.Ctx) error {
+	sessions := h.tokenManager.GetAllSessions()
+	return c.JSON(fiber.Map{
+		"sessions": sessions,
+		"count":    len(sessions),
 	})
 }
