@@ -40,6 +40,23 @@ CREATE TABLE system.plans (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Subscriptions table
+CREATE TABLE system.subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES system.tenants(id) ON DELETE CASCADE,
+    plan_id UUID NOT NULL REFERENCES system.plans(id) ON DELETE RESTRICT,
+    status VARCHAR(50) DEFAULT 'active', -- active, cancelled, expired, trial
+    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_date TIMESTAMP WITH TIME ZONE,
+    trial_end_date TIMESTAMP WITH TIME ZONE,
+    billing_cycle VARCHAR(20) DEFAULT 'monthly', -- monthly, yearly
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Modules table
 CREATE TABLE system.modules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,6 +77,18 @@ CREATE TABLE system.tenant_modules (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (tenant_id, module_id)
 );
+
+-- Add foreign key constraint for tenants.plan_id
+ALTER TABLE system.tenants 
+ADD CONSTRAINT fk_tenants_plan_id 
+FOREIGN KEY (plan_id) REFERENCES system.plans(id) ON DELETE SET NULL;
+
+-- Add indexes for better performance
+CREATE INDEX idx_tenants_slug ON system.tenants(slug);
+CREATE INDEX idx_tenants_status ON system.tenants(status);
+CREATE INDEX idx_subscriptions_tenant_id ON system.subscriptions(tenant_id);
+CREATE INDEX idx_subscriptions_status ON system.subscriptions(status);
+CREATE INDEX idx_subscriptions_plan_id ON system.subscriptions(plan_id);
 
 -- Insert default modules
 INSERT INTO system.modules (name, description) VALUES
